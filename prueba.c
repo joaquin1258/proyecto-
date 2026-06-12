@@ -6,8 +6,6 @@ typedef struct {
 
 
 int main(){
-    printf("Hola Mundo");
-    printf("Hola Mundo");
+    printf("CACO EL PROYECTOOOO!!!!!");
     return 0;
-
 }
