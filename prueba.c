@@ -7,7 +7,6 @@
 
 typedef struct {
     char nombre[50];
-    char clave[50];
     Map *mapa_claves;
 } usuario;
 
@@ -49,13 +48,9 @@ void crear_usuario(Map *mapa_usuarios) {
     if(map_search(mapa_usuarios, nombre_usuario) != NULL){
         puts("el usuario ya existe, intente con otro nombre");
     }else{
-        puts("ingrese la contraseña del nuevo usuario: ");
-        char contraseña[50];
-        scanf("%49s", contraseña);
         usuario *nuevo_usuario = (usuario *) malloc(sizeof(usuario));
 
         strcpy(nuevo_usuario->nombre, nombre_usuario);
-        strcpy(nuevo_usuario->clave, contraseña);
         nuevo_usuario->mapa_claves = map_create(is_equal_str);
 
         map_insert(mapa_usuarios, nuevo_usuario->nombre, nuevo_usuario);
@@ -72,16 +67,8 @@ void ingresar_usuario(Map *mapa_usuarios, int *resultado) {
         puts("el usuario no existe, intente de nuevo");
     }
     else{
-        puts("ingrese la contraseña del usuario: ");
-        char clave[50];
-        scanf("%49s", clave);
-        usuario *usuario_actual = (usuario *) usuario_encontrado->value;
-        if (strcmp(usuario_actual->clave, clave) == 0) {
-            puts("ingreso exitoso");
-            *resultado = 0; 
-        } else {
-            puts("contraseña incorrecta, intente de nuevo");
-        }
+        puts("ingreso exitoso");
+        *resultado = 0; 
     }
 }
 
@@ -108,6 +95,8 @@ int main(){
         }
 
     }while(resultado != 0);
+
+    // aca se abriria el menu 
 
 
     return 0;
