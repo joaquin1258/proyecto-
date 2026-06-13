@@ -72,12 +72,73 @@ void ingresar_usuario(Map *mapa_usuarios, int *resultado) {
     }
 }
 
+void asociarServicio(MapPair *par) {
+    char servicio[50] ;
+    char opcion ;
+    printf("Ingrese nombre del servicio: ") ;
+    scanf("%s", &servicio) ;
+
+    printf("¿Desea generar una contraseña para el servicio? s/n: ") ;
+        scanf("%c", &opcion) ;
+        if (opcion=='s') {
+            printf("generar contraseña\n") ; // falta funcion para generar
+        }
+        else {
+            printf("Ingresar contraseña\n") ; // falta funcion para verificar 
+        }
+
+}
+
+void crearCuenta(Map *cuentas) {
+    printf("Ingrese nombre de usuario: ") ;
+    char nombreCuenta[50] ;
+    scanf("%s", &nombreCuenta) ;
+
+    MapPair *valor=map_search(cuentas, nombreCuenta) ;
+    if (valor!=NULL) {
+        char opcion ;
+        printf("¡Nombre de usuario ya en uso!\n") ;
+        printf("¿Desea asociar un nuevo servicio al usuario ingresado? s/n: ") ;
+        scanf("%c", &opcion) ;
+        if (opcion=='s') {
+            asociarServicio(valor) ;
+        }
+        else printf("Intente ingresar una cuenta nuevamente\n") ;
+    }
+    else {
+        char servicio[50] ;
+        char opcion2 ;
+        usuario *nuevo=(usuario*) malloc(sizeof(usuario)) ;
+
+        strcpy(nuevo->nombre, nombreCuenta) ;
+        nuevo->mapa_claves=map_create(is_equal_str) ;
+
+        printf("Ingrese nombre del servicio: ") ;
+        scanf("%s", &servicio) ;
+        strcpy(nuevo->mapa_claves->key, servicio) ;
+
+
+        printf("¿Desea generar una contraseña para el servicio? s/n: ") ;
+        scanf("%c", &opcion2) ;
+        if (opcion2=='s') {
+            printf("generar contraseña\n") ; // falta funcion para generar
+        }
+        else {
+            printf("Ingresar contraseña\n") ; // falta funcion para verificar 
+        }
+        printf("Cuenta ingresada correctamente\n") ;
+    }
+
+}
+
 int main(){
 
     List *lista_clavesMasUsadas = cargarClavesMasUsadas(); 
 
     Map *mapa_usuarios = map_create(is_equal_str);
     int resultado= 1;
+
+    usuario MapaCuentas=map_create(is_equal_str) ;
 
     do{
         char respuesta[9];
@@ -98,6 +159,9 @@ int main(){
 
     // aca se abriria el menu 
 
+
+    // por mientras pondré la función crear cuenta aqui:
+    crearCuenta(mapa_usuarios) ;
 
     return 0;
 }
