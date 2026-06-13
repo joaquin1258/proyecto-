@@ -1,20 +1,25 @@
-#ifndef QUEUE_H
-#define QUEUE_H
-#include "list.h"
+#ifndef SET_H
+#define SET_H
+#include "map.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-typedef List Queue;
+typedef Map Set;
 
-Queue *queue_create(Queue *queue) { return list_create(); }
+Map *set_create(int (*is_equal)(void *key1, void *key2)) {
+  map_create(is_equal);
+}
 
-void queue_insert(Queue *queue, void *data) { list_pushBack(queue, data); }
+Map *sorted_set_create(int (*lower_than)(void *key1, void *key2)){
+  sorted_map_create(lower_than);
+}
 
-void *queue_remove(Queue *queue) { return list_popFront(queue); }
+void set_insert(Set *set, void *value) { map_insert(set, value, value); }
 
-void *queue_front(Queue *queue) { return list_first(queue); }
+void *set_remove(Set *set, void *value) { return map_remove(set, value); }
 
-//Operacion especial para iterar sobre la cola
-void *queue_next(Queue *queue) { return list_next(queue); }
+void *set_search(Set *set, void *value) { return map_search(set, value); }
 
-void queue_clean(Queue *queue) { list_clean(queue); }
+void set_clean(Set *set) { map_clean(set); }
 
-#endif /* QUEUE_H */
+#endif /* SET_H */

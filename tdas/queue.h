@@ -1,39 +1,20 @@
-#ifndef MULTIMAP_H
-#define MULTIMAP_H
-#include "map.h"
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef QUEUE_H
+#define QUEUE_H
+#include "list.h"
 
-typedef Map MultiMap;
+typedef List Queue;
 
-MultiMap *multimap_create(int (*is_equal)(void *key1, void *key2)){
-  return map_create(is_equal);
-}
+Queue *queue_create(Queue *queue) { return list_create(); }
 
-MultiMap *sorted_multimap_create(int (*lower_than)(void *key1, void *key2)){
-  return sorted_map_create(lower_than);
-}
+void queue_insert(Queue *queue, void *data) { list_pushBack(queue, data); }
 
-void multimap_insert(MultiMap *map, void *key, void *value);
+void *queue_remove(Queue *queue) { return list_popFront(queue); }
 
-MapPair *multimap_remove(MultiMap *map, void *key){
-  return map_remove(map, key);
-}
+void *queue_front(Queue *queue) { return list_first(queue); }
 
-MapPair *multimap_search(MultiMap *map, void *key){
-  return map_search(map, key);
-}
+//Operacion especial para iterar sobre la cola
+void *queue_next(Queue *queue) { return list_next(queue); }
 
-MapPair *multimap_first(MultiMap *map){
-  return map_first(map);
-}
+void queue_clean(Queue *queue) { list_clean(queue); }
 
-MapPair *multimap_next(MultiMap *map){
-  return map_next(map);
-}
-
-void multimap_clean(MultiMap *map){
-  return map_clean(map);
-}
-
-#endif /* MULTIMAP_H */
+#endif /* QUEUE_H */

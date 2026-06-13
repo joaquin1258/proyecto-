@@ -1,39 +1,124 @@
-#ifndef LIST_H
-#define LIST_H
+#include "map.h"
+#include "list.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-typedef struct List List;
+typedef struct Node {
+  void *data;
+  struct Node *next;
+} Node;
 
-// Esta función crea una lista vacía y devuelve un puntero a la lista.
-List *list_create();
+struct List {
+  Node *head;
+  Node *tail;
+  Node *current;
+  int size;
+};
 
-// Esta función devuelve un puntero al primer elemento de la lista.
-void *list_first(List *L);
+struct Map {
+  int (*lower_than)(void *key1, void *key2);
+  int (*is_equal)(void *key1, void *key2);
+  List *ls;
+};
 
-// Esta función mueve el puntero de la lista al siguiente elemento y devuelve un
-// puntero a dicho elemento.
-void *list_next(List *L);
+typedef Map Map;
+typedef List List;
 
-// Esta función inserta un nuevo elemento al inicio de la lista.
-void list_pushFront(List *L, void *dato);
+// Variable global para almacenar la función de comparación actual
+int (*current_lt)(void *, void *) = NULL;
 
-// Esta función inserta un nuevo elemento al final de la lista.
-void list_pushBack(List *L, void *dato);
+int pair_lt(void *pair1, void *pair2) {
+  return (current_lt(((MapPair *)pair1)->key, ((MapPair *)pair2)->key));
+}
 
-// Esta función inserta un nuevo elemento a continuación del actual de la lista.
-void list_pushCurrent(List *L, void *dato);
+void list_sortedInsert(List *L, void *data,
+                       int (*lower_than)(void *data1, void *data2)) {
+  if (L == NULL) {
+    return; // Lista no inicializada
+  }
 
-// Esta función elimina el primer elemento de la lista.
-void *list_popFront(List *L);
+  // Caso especial: inserción al principio o en lista vacía
+  if (L->head == NULL || lower_than(data, L->head->data)) {
+    list_pushFront(L, data);
+    return;
+  }
 
-// Esta función elimina el último elemento de la lista.
-void *list_popBack(List *L);
+  // Caso general: encontrar la posición correcta para insertar
+  Node *current = L->head;
+  while (current->next != NULL && !lower_than(data, current->next->data)) {
+    current = current->next;
+  }
 
-// Esta función elimina el elemento actual de la lista.
-void *list_popCurrent(List *L);
+  // Preparar para usar list_pushCurrent
+  L->current = current;
 
-// Esta función elimina todos los elementos de la lista.
-void list_clean(List *L);
+  // Insertar el nodo en la posición actual
+  list_pushCurrent(L, data);
+}
 
-int list_size(List* L);
+Map *sorted_map_create(int (*lower_than)(void *key1, void *key2)) {
+  Map *newMap = (Map *)malloc(sizeof(Map));
+  newMap->lower_than = lower_than;
+  newMap->is_equal = NULL;
+  newMap->ls = list_create();
 
-#endif
+  return newMap;
+}
+
+Map *map_create(int (*is_equal)(void *key1, void *key2)) {
+  Map *newMap = (Map *)malloc(sizeof(Map));
+  newMap->lower_than = NULL;
+  newMap->is_equal = is_equal;
+  newMap->ls = list_create();
+
+  return newMap;
+}
+
+
+void multimap_insert(Map *map, void *key, void *value) {
+  MapPair *pair = (MapPair *)malloc(sizeof(MapPair));
+  pair->key = key;
+  pair->value = value;
+
+  if (map->lower_than) {
+    current_lt = map->lower_than;
+    list_sortedInsert(map->ls, pair, pair_lt);
+  } else
+    list_pushBack(map->ls, pair);
+}
+
+void map_insert(Map *map, void *key, void *value) {
+  if (map_search(map, key) != NULL) return;
+  multimap_insert(map, key, value);
+}
+
+int _is_equal(Map *map, MapPair *pair, void *key) {
+  return ((map->is_equal && map->is_equal(pair->key, key)) ||
+          (map->lower_than && !map->lower_than(pair->key, key) &&
+           !map->lower_than(key, pair->key)));
+}
+
+MapPair *map_remove(Map *map, void *key) {
+  for (MapPair *pair = list_first(map->ls); pair != NULL;
+       pair = list_next(map->ls))
+    if (_is_equal(map, pair, key)) {
+      list_popCurrent(map->ls);
+      return pair;
+    }
+  return NULL;
+}
+
+MapPair *map_search(Map *map, void *key) {
+  for (MapPair *pair = list_first(map->ls); pair != NULL;
+       pair = list_next(map->ls)) {
+    if (_is_equal(map, pair, key))
+      return pair;
+  }
+  return NULL;
+}
+
+MapPair *map_first(Map *map) { return list_first(map->ls); }
+
+MapPair *map_next(Map *map) { return list_next(map->ls); }
+
+void map_clean(Map *map) { list_clean(map->ls); }

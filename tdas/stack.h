@@ -1,25 +1,17 @@
-#ifndef SET_H
-#define SET_H
-#include "map.h"
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef STACK_H
+#define STACK_H
+#include "list.h"
 
-typedef Map Set;
+typedef List Stack;
 
-Map *set_create(int (*is_equal)(void *key1, void *key2)) {
-  map_create(is_equal);
-}
+Stack *stack_create(Stack *stack) { return list_create(); }
 
-Map *sorted_set_create(int (*lower_than)(void *key1, void *key2)){
-  sorted_map_create(lower_than);
-}
+void stack_push(Stack *stack, void *data) { list_pushFront(stack, data); }
 
-void set_insert(Set *set, void *value) { map_insert(set, value, value); }
+void *stack_top(Stack *stack) { return list_first(stack); }
 
-void *set_remove(Set *set, void *value) { return map_remove(set, value); }
+void *stack_pop(Stack *stack) { return list_popFront(stack); }
 
-void *set_search(Set *set, void *value) { return map_search(set, value); }
+void stack_clean(Stack *stack) { list_clean(stack); }
 
-void set_clean(Set *set) { map_clean(set); }
-
-#endif /* SET_H */
+#endif /* STACK_H */

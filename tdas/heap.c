@@ -1,54 +1,74 @@
-#ifndef EXTRA_H
-#define EXTRA_H
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "list.h"
+#include <math.h>
+#include <ctype.h>
+#include "heap.h"
 
-#define N 10
+typedef struct nodo{
+   void* data;
+   int priority;
+}heapElem;
 
-/**
- * Función para leer y parsear una línea de un archivo CSV en campos
- * individuales.
- *
- * Esta función lee una línea de un archivo CSV, donde cada campo puede estar
- * opcionalmente entrecomillado y separado por un caracter definido como
- * 'separador'. La función maneja campos entrecomillados que pueden contener el
- * separador como parte del valor del campo.
- *
- * @param archivo Puntero a FILE que representa el archivo CSV abierto.
- * @param separador Caracter utilizado para separar los campos en la línea del
- * CSV.
- *
- * @return Retorna un puntero a un arreglo de cadenas (char*), donde cada
- * elemento representa un campo de la línea del CSV leída. Si no hay más líneas
- * para leer o se alcanza el fin del archivo, retorna NULL.
- *
- * Uso:
- * FILE* f = fopen("datos.csv", "r");
- * char** campos;
- * while ((campos = leer_linea_csv(f, ',')) != NULL) {
- *     // Procesar campos
- * }
- * fclose(f);
- *
- * Notas:
- * - La función utiliza memoria estática internamente, por lo que cada llamada
- * sobrescribe los datos de la llamada anterior.
- * - La función asume que ninguna línea del CSV excede MAX_LINE_LENGTH
- * caracteres y que no hay más de MAX_FIELDS campos por línea.
- */
-char **leer_linea_csv(FILE *archivo, char separador);
+typedef struct Heap{
+  heapElem* heapArray;
+  int size;
+  int capac;
+} Heap;
 
-List *split_string(const char *str, const char *delim);
 
-// Función para limpiar la pantalla
-void limpiarPantalla();
+void* heap_top(Heap* pq){
+    if(pq->size==0) return NULL;
+    return pq->heapArray[0].data;
+}
 
-void presioneTeclaParaContinuar();
+void heap_push(Heap* pq, void* data, int priority){
 
-void generate_maze(int maze[N][N], int difficulty);
+    if(pq->size+1>pq->capac){
+        //printf("se expande de %i a ", pq->capac);
+        pq->capac=(pq->capac)*2+1;
+        //printf("%i * %lu", pq->capac, sizeof(heapElem));
+        pq->heapArray=realloc(pq->heapArray, (pq->capac)*sizeof(heapElem));
+    }
 
-#endif
+    /*FlotaciÃ³n*/
+    int now = pq->size;
+    while(now>0 && pq->heapArray[(now-1)/2].priority < priority)
+        {
+                pq->heapArray[now] = pq->heapArray[(now-1)/2];
+                now = (now -1)/2;
+        }
+    pq->heapArray[now].priority = priority;
+    pq->heapArray[now].data = data;
+    pq->size++;
+}
+
+
+void heap_pop(Heap* pq){
+
+        pq->size--;
+        pq->heapArray[0] = pq->heapArray[pq->size];
+        int priority=pq->heapArray[0].priority;
+
+
+        int now = 1;
+
+        while((now<=pq->size && pq->heapArray[now].priority > priority) || (now+1<=pq->size && pq->heapArray[now+1].priority > priority)){
+          heapElem tmp=pq->heapArray[(now-1)/2];
+          if(now+1<=pq->size && pq->heapArray[now].priority < pq->heapArray[now+1].priority) now++;
+
+          pq->heapArray[(now-1)/2]=pq->heapArray[now];
+          pq->heapArray[now]=tmp;
+
+          now = now * 2 + 1;
+        }
+        //printf("size = %i, top = %i\n", pq->size, pq->heapArray[0].data );
+}
+
+Heap* heap_create(){
+   Heap *pq=(Heap*) malloc(sizeof(Heap));
+   pq->heapArray=(heapElem*) malloc(3*sizeof(heapElem));
+   pq->size=0;
+   pq->capac=3; //capacidad inicial
+   return pq;
+}
