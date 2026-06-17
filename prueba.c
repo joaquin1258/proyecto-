@@ -1,9 +1,9 @@
-#include "tdas/extra.h"
-#include "tdas/list.h"
-#include "tdas/map.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "tdas/extra.h"
+#include "tdas/list.h"
+#include "tdas/map.h"
 
 typedef struct {
     char nombre[50];
@@ -157,7 +157,7 @@ int main(){
 
     }while(resultado != 0);
 
-    // aca se abriria el menu 
+    
 
 
     // por mientras pondré la función crear cuenta aqui:
