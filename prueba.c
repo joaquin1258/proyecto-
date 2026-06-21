@@ -15,20 +15,18 @@ int is_equal_str(void *key1, void *key2) {
 }
 
 List *cargarClavesMasUsadas() {
-
     List *lista = list_create(); 
     if(lista == NULL) exit(EXIT_FAILURE); 
 
     FILE *archivo = fopen("comunes.txt", "r"); 
     if (archivo == NULL) {
-        printf("Error al abrir el archivo"); // Informa si el archivo no puede abrirse
+        printf("Error al abrir el archivo");
         return NULL;
     }
 
     char palabra[50]; 
 
     while(fscanf(archivo, "%49s", palabra) != EOF) { 
-         
         char *Nodo = (char *) malloc(sizeof(char) * 50);
         if(Nodo != NULL){
             strcpy(Nodo, palabra); 
@@ -76,23 +74,22 @@ void asociarServicio(MapPair *par) {
     char servicio[50] ;
     char opcion ;
     printf("Ingrese nombre del servicio: ") ;
-    scanf(" %s", &servicio) ;
+    scanf(" %49s", servicio) ;
 
     printf("¿Desea generar una contraseña para el servicio? s/n: ") ;
-        scanf(" %c", &opcion) ;
-        if (opcion=='s') {
-            printf("generar contraseña\n") ; // falta funcion para generar
-        }
-        else {
-            printf("Ingresar contraseña\n") ; // falta funcion para verificar 
-        }
-
+    scanf(" %c", &opcion) ;
+    if (opcion=='s') {
+        printf("generar contraseña\n") ;
+    }
+    else {
+        printf("Ingresar contraseña\n") ;
+    }
 }
 
 void crearCuenta(Map *cuentas) {
     printf("Ingrese nombre de usuario: ") ;
     char nombreCuenta[50] ;
-    scanf("%s", nombreCuenta) ;
+    scanf("%49s", nombreCuenta) ;
 
     MapPair *valor=map_search(cuentas, nombreCuenta) ;
     if (valor!=NULL) {
@@ -108,38 +105,36 @@ void crearCuenta(Map *cuentas) {
     else {
         char servicio[50] ;
         char opcion2 ;
+        char contrasena_ingresada[50] = "Clave123";
         usuario *nuevo=(usuario*) malloc(sizeof(usuario)) ;
 
         strcpy(nuevo->nombre, nombreCuenta) ;
         nuevo->mapa_claves=map_create(is_equal_str) ;
 
         printf("Ingrese nombre del servicio: ") ;
-        scanf("%s", &servicio) ;
-
+        scanf("%49s", servicio) ;
 
         printf("¿Desea generar una contraseña para el servicio? s/n: ") ;
-        scanf("%c", &opcion2) ;
+        scanf(" %c", &opcion2) ;
         if (opcion2=='s') {
-            printf("generar contraseña\n") ; // falta funcion para generar
+            printf("generar contraseña\n") ;
         }
         else {
-            printf("Ingresar contraseña\n") ; // falta funcion para verificar 
+            printf("Ingresar contraseña\n") ;
+            printf("Ingrese la contraseña: ");
+            scanf("%49s", contrasena_ingresada);
         }
         printf("Cuenta ingresada correctamente\n") ;
-        map_insert(nuevo->mapa_claves, servicio, contraseña) ;
-
+        
+        map_insert(nuevo->mapa_claves, servicio, contrasena_ingresada) ; 
     }
-
 }
 
 int main(){
-
     List *lista_clavesMasUsadas = cargarClavesMasUsadas(); 
-
     Map *mapa_usuarios = map_create(is_equal_str);
-    int resultado= 1;
-
-    usuario *MapaCuentas=map_create(is_equal_str) ;
+    int resultado = 1;
+    char opcion;
 
     do{
         char respuesta[9];
@@ -158,41 +153,42 @@ int main(){
 
     }while(resultado != 0);
 
-
     do {
         puts("========================================");
         puts("            MENÚ DE OPCIONES");
         puts("========================================");
-
-        
         
         puts("1) crear cuenta");
         puts("2) buscar contraseña");
         puts("3) cambiar contraseña");
         puts("4) salir");
-
         
         printf("Ingrese su opción: ");
         scanf(" %c", &opcion);
 
         switch (opcion) {
-        case '1':
-          crearCuenta(mapa_usuarios);
-          break;
-        case '2':
-          printf("Opción 2 seleccionada\n");
-          break;
-        case '3':
-          printf("Opción 3 seleccionada\n");
-          break;
+            case '1':
+                crearCuenta(mapa_usuarios);
+                break;
+            case '2':
+                printf("Opción 2 seleccionada\n");
+                break;
+            case '3':
+                printf("Opción 3 seleccionada\n");
+                break;
+            case '4':
+                printf("Saliendo...\n");
+                break;
+            default:
+                printf("Opción no válida\n");
+                break;
+        } 
         
-
         if (opcion != '4') {
             presioneTeclaParaContinuar();
             limpiarPantalla();
         }
-    } 
-
+        
     } while (opcion != '4');
 
     return 0;
