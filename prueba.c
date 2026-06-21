@@ -191,6 +191,7 @@ int main(){
             presioneTeclaParaContinuar();
             limpiarPantalla();
         }
+    } 
 
     } while (opcion != '4');
 
