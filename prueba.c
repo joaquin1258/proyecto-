@@ -131,8 +131,8 @@ void crearCuenta(Map *cuentas) {
 }
 
 int main(){
-    printf("Bienvenido al gestor de contraseñas\n");
-    printf("Cargando claves más usadas...\n");
+    printf("Bienvenido al gestor de claves\n");
+    printf("Cargando claves mas usadas...\n");
 
     List *lista_clavesMasUsadas = cargarClavesMasUsadas(); 
     Map *mapa_usuarios = map_create(is_equal_str);
