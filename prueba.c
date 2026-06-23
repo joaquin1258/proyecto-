@@ -146,6 +146,7 @@ int main(){
         
         if (strcmp(respuesta, "crear")==0){
             crear_usuario(mapa_usuarios);
+            resultado = 0;
         }
         else if (strcmp(respuesta, "ingresar")==0){
             ingresar_usuario(mapa_usuarios, &resultado);
@@ -158,12 +159,12 @@ int main(){
 
     do {
         puts("========================================");
-        puts("            MENÚ DE OPCIONES");
+        puts("            MENU DE OPCIONES");
         puts("========================================");
         
         puts("1) crear cuenta");
-        puts("2) buscar contraseña");
-        puts("3) cambiar contraseña");
+        puts("2) buscar clave");
+        puts("3) cambiar clave");
         puts("4) salir");
         
         printf("Ingrese su opción: ");
@@ -174,16 +175,16 @@ int main(){
                 crearCuenta(mapa_usuarios);
                 break;
             case '2':
-                printf("Opción 2 seleccionada\n");
+                printf("Opcion 2 seleccionada\n");
                 break;
             case '3':
-                printf("Opción 3 seleccionada\n");
+                printf("Opcion 3 seleccionada\n");
                 break;
             case '4':
                 printf("Saliendo...\n");
                 break;
             default:
-                printf("Opción no válida\n");
+                printf("Opcion no válida\n");
                 break;
         } 
         
