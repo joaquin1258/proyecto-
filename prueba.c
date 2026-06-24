@@ -158,7 +158,14 @@ void verificarClave(char *clave, List *lista_clavesMasUsadas) {
     for(int i = 0; i < largo; i++){
         if(isupper(clave[i])) mayuscula += 1;
         if(islower(clave[i])) minuscula += 1;
+        if(isdigit(clave[i])) numero += 1;
+        if(ispunct(clave[i])) simbolo += 1;
 
+    }
+
+    if(mayuscula < 1 || minuscula < 1 || numero < 1 || simbolo < 1) {
+        printf("La clave no cumple con los requisitos de seguridad.\n");
+        return;
     }
 
     printf("La clave es segura.\n");
