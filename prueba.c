@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "tdas/extra.h"
 #include "tdas/list.h"
 #include "tdas/map.h"
@@ -130,6 +131,39 @@ void crearCuenta(Map *cuentas) {
     }
 }
 
+void verificarClave(char *clave, List *lista_clavesMasUsadas) {
+    int largo = strlen(clave);
+    int mayuscula = 0; 
+    int minuscula = 0;
+    int numero = 0;
+    int simbolo = 0;
+
+    if(lista_clavesMasUsadas != NULL) {
+        char *clave_comun = (char *)list_first(lista_clavesMasUsadas);
+
+        while(clave_comun != NULL) {
+            if(strcmp(clave, clave_comun) == 0) {
+                printf("La clave es demasiado común y no es segura.\n");
+                return;
+            }
+            clave_comun = (char *)list_next(lista_clavesMasUsadas);
+        }
+    }
+
+    if(largo < 12) {
+        printf("La clave es demasiado corta y no es segura.\n");
+        return;
+    }
+
+    for(int i = 0; i < largo; i++){
+        if(isupper(clave[i])) mayuscula += 1;
+        if(islower(clave[i])) minuscula += 1;
+
+    }
+
+    printf("La clave es segura.\n");
+}
+
 int main(){
     printf("Bienvenido al gestor de claves\n");
     printf("Cargando claves mas usadas...\n");
@@ -166,6 +200,7 @@ int main(){
         puts("2) buscar clave");
         puts("3) cambiar clave");
         puts("4) salir");
+        puts("5) verificar clave");
         
         printf("Ingrese su opción: ");
         scanf(" %c", &opcion);
@@ -183,6 +218,15 @@ int main(){
             case '4':
                 printf("Saliendo...\n");
                 break;
+            case '5':
+
+                printf("Opcion 5 seleccionada\n");
+                char clave[50];
+                printf("Ingrese la clave a verificar: ");
+                scanf("%49s", clave);
+                verificarClave(clave, lista_clavesMasUsadas);
+                break;
+
             default:
                 printf("Opcion no válida\n");
                 break;
