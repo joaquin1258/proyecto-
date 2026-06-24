@@ -5,6 +5,7 @@
 #include "tdas/extra.h"
 #include "tdas/list.h"
 #include "tdas/map.h"
+#include <time.h>
 
 typedef struct {
     char nombre[50];
@@ -171,6 +172,19 @@ void verificarClave(char *clave, List *lista_clavesMasUsadas) {
     printf("La clave es segura.\n");
 }
 
+void claveAleatoria(char *clave, int largo){
+    const char caracteres[] = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890!@#$&*()_+-/=?";
+
+    int cantidad_caracteres = sizeof(caracteres) - 1;
+    for (int i=0; i < largo; i++){
+
+        int indice = rand() % cantidad_caracteres;
+        clave[i] = caracteres[indice];
+    }
+    clave[largo] = '\0';
+
+}
+
 int main(){
     printf("Bienvenido al gestor de claves\n");
     printf("Cargando claves mas usadas...\n");
@@ -179,6 +193,7 @@ int main(){
     Map *mapa_usuarios = map_create(is_equal_str);
     int resultado = 1;
     char opcion;
+    srand(time(NULL));
 
     do{
         char respuesta[9];
