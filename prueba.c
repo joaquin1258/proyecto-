@@ -41,30 +41,30 @@ List *cargarClavesMasUsadas() {
     return lista;
 }
 
-void crear_usuario(Map *mapa_usuarios) {
-    char nombre_usuario[50];
-    puts("ingrese el nombre del nuevo usuario: ");
-    scanf(" %49s", nombre_usuario);
-    if(map_search(mapa_usuarios, nombre_usuario) != NULL){
-        puts("el usuario ya existe, intente con otro nombre");
+void crear_perfil(Map *mapa_perfiles) {
+    char nombre_perfil[50];
+    puts("ingrese el nombre del nuevo perfil: ");
+    scanf(" %49s", nombre_perfil);
+    if(map_search(mapa_perfiles, nombre_perfil) != NULL){
+        puts("el perfil ya existe, intente con otro nombre");
     }else{
         usuario *nuevo_usuario = (usuario *) malloc(sizeof(usuario));
 
-        strcpy(nuevo_usuario->nombre, nombre_usuario);
+        strcpy(nuevo_usuario->nombre, nombre_perfil);
         nuevo_usuario->mapa_claves = map_create(is_equal_str);
 
-        map_insert(mapa_usuarios, nuevo_usuario->nombre, nuevo_usuario);
-        puts("se a creado el nuevo usuario");
+        map_insert(mapa_perfiles, nuevo_usuario->nombre, nuevo_usuario);
+        puts("se a creado el nuevo perfil");
     }
 }
 
-void ingresar_usuario(Map *mapa_usuarios, int *resultado) {
-    char nombre_usuario[50];
-    puts("ingrese el nombre del usuario: ");
-    scanf(" %49s", nombre_usuario);
-    MapPair *usuario_encontrado = map_search(mapa_usuarios, nombre_usuario);
-    if(usuario_encontrado == NULL){
-        puts("el usuario no existe, intente de nuevo");
+void ingresar_perfil(Map *mapa_perfiles, int *resultado) {
+    char nombre_perfil[50];
+    puts("ingrese el nombre del perfil: ");
+    scanf(" %49s", nombre_perfil);
+    MapPair *perfil_encontrado = map_search(mapa_perfiles, nombre_perfil);
+    if(perfil_encontrado == NULL){
+        puts("el perfil no existe, intente de nuevo");
     }
     else{
         puts("ingreso exitoso");
@@ -190,22 +190,22 @@ int main(){
     printf("Cargando claves mas usadas...\n");
 
     List *lista_clavesMasUsadas = cargarClavesMasUsadas(); 
-    Map *mapa_usuarios = map_create(is_equal_str);
+    Map *mapa_perfiles = map_create(is_equal_str);
     int resultado = 1;
     char opcion;
     srand(time(NULL));
 
     do{
         char respuesta[9];
-        puts("desea ingresar o crear un nuevo usuario? (ingresar/crear)"); 
+        puts("desea ingresar o crear un nuevo perfil? (ingresar/crear)"); 
         scanf("%8s", respuesta);
         
         if (strcmp(respuesta, "crear")==0){
-            crear_usuario(mapa_usuarios);
+            crear_perfil(mapa_perfiles);
             resultado = 0;
         }
         else if (strcmp(respuesta, "ingresar")==0){
-            ingresar_usuario(mapa_usuarios, &resultado);
+            ingresar_perfil(mapa_perfiles, &resultado);
         }
         else{
             puts("respuesta no valida, intente de nuevo");
@@ -229,7 +229,7 @@ int main(){
 
         switch (opcion) {
             case '1':
-                crearCuenta(mapa_usuarios);
+                crearCuenta(mapa_perfiles);
                 break;
             case '2':
                 printf("Opcion 2 seleccionada\n");
