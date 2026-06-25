@@ -54,30 +54,30 @@ List *cargarClavesMasUsadas() {
     return lista;
 }
 
-void crear_usuario(Map *mapa_usuarios) {
-    char nombre_usuario[50];
-    puts("ingrese el nombre del nuevo usuario: ");
-    scanf(" %49s", nombre_usuario);
-    if(map_search(mapa_usuarios, nombre_usuario) != NULL){
-        puts("el usuario ya existe, intente con otro nombre");
+void crear_perfil(Map *mapa_perfiles) {
+    char nombre_perfil[50];
+    puts("ingrese el nombre del nuevo perfil: ");
+    scanf(" %49s", nombre_perfil);
+    if(map_search(mapa_perfiles, nombre_perfil) != NULL){
+        puts("el perfil ya existe, intente con otro nombre");
     }else{
         usuario *nuevo_usuario = (usuario *) malloc(sizeof(usuario));
 
-        strcpy(nuevo_usuario->nombre, nombre_usuario);
+        strcpy(nuevo_usuario->nombre, nombre_perfil);
         nuevo_usuario->mapa_claves = map_create(is_equal_str);
 
-        map_insert(mapa_usuarios, nuevo_usuario->nombre, nuevo_usuario);
-        puts("se a creado el nuevo usuario");
+        map_insert(mapa_perfiles, nuevo_usuario->nombre, nuevo_usuario);
+        puts("se a creado el nuevo perfil");
     }
 }
 
-void ingresar_usuario(Map *mapa_usuarios, int *resultado) {
-    char nombre_usuario[50];
-    puts("ingrese el nombre del usuario: ");
-    scanf(" %49s", nombre_usuario);
-    MapPair *usuario_encontrado = map_search(mapa_usuarios, nombre_usuario);
-    if(usuario_encontrado == NULL){
-        puts("el usuario no existe, intente de nuevo");
+void ingresar_perfil(Map *mapa_perfiles, int *resultado) {
+    char nombre_perfil[50];
+    puts("ingrese el nombre del perfil: ");
+    scanf(" %49s", nombre_perfil);
+    MapPair *perfil_encontrado = map_search(mapa_perfiles, nombre_perfil);
+    if(perfil_encontrado == NULL){
+        puts("el perfil no existe, intente de nuevo");
     }
     else{
         puts("ingreso exitoso");
@@ -154,7 +154,6 @@ void buscarContra(Map *nombresUsuarios) {
     }
 }
 
-
 void verificarClave(char *clave, List *lista_clavesMasUsadas) {
     int largo = strlen(clave);
     int mayuscula = 0; 
@@ -198,14 +197,74 @@ void verificarClave(char *clave, List *lista_clavesMasUsadas) {
 void claveAleatoria(char *clave, int largo){
     const char caracteres[] = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890!@#$&*()_+-/=?";
 
+
     int cantidad_caracteres = sizeof(caracteres) - 1;
-    for (int i=0; i < largo; i++){
+    int es_segura = 0; 
 
-        int indice = rand() % cantidad_caracteres;
-        clave[i] = caracteres[indice];
+    do {
+        int mayuscula = 0;
+        int minuscula = 0;
+        int numero = 0; 
+        int simbolo = 0;
+
+        for (int i = 0; i < largo; i++){
+            int caracter = rand() % cantidad_caracteres;
+            clave[i] = caracteres[caracter];
+        }
+        clave[largo] = '\0'; 
+
+
+        for (int i = 0; i < largo; i++){
+            if (isupper(clave[i])) mayuscula++;
+            if (islower(clave[i])) minuscula++;
+            if (isdigit(clave[i])) numero++;
+            if (ispunct(clave[i])) simbolo++;
+        }
+
+        
+        if (mayuscula >= 1 && minuscula >= 1 && numero >= 1 && simbolo >= 1) {
+            es_segura = 1; 
+        }
+
+    } while (es_segura==0);
+
+}
+
+int guardado(const char *nombreArchivo, Map* mapa_perfiles) {
+
+    FILE *archivo = fopen(nombreArchivo, "wb");
+    if (archivo == NULL) {
+        printf("Error al abrir el archivo para guardar.\n");
+        return 0;
     }
-    clave[largo] = '\0';
 
+    int total_perfiles = map_count(mapa_perfiles);
+    fwrite(&total_perfiles, sizeof(int), 1, archivo);
+    MapPair *pair_perfil = map_first(mapa_perfiles);
+
+    while(pair_perfil !=NULL){
+        
+        usuario *user = (usuario *) pair_perfil->value;
+
+        if (user!=NULL){
+            fwrite(user->nombre, sizeof(char), 50, archivo);
+            int total_cuentas = map_count(user->mapa_claves);
+            fwrite(&total_cuentas, sizeof(int), 1, archivo);
+
+            MapPair *pair_cuenta = map_first(user->mapa_claves);
+            while(pair_cuenta != NULL){
+
+                fwrite(pair_cuenta->key, sizeof(char), 50, archivo);
+                fwrite(pair_cuenta->value, sizeof(char), 20, archivo);
+                pair_cuenta = map_next(user->mapa_claves);
+            }
+        }
+
+        pair_perfil = map_next(mapa_perfiles);
+
+    }
+    fclose(archivo);
+    return 1;
 }
 
 void asociarServicio(MapPair *par) {
@@ -295,22 +354,22 @@ int main(){
     Map *mapaUsuarios=map_create(is_equal_str) ;
 
     List *lista_clavesMasUsadas = cargarClavesMasUsadas(); 
-    Map *mapa_usuarios = map_create(is_equal_str);
+    Map *mapa_perfiles = map_create(is_equal_str);
     int resultado = 1;
     char opcion;
     srand(time(NULL));
 
     do{
         char respuesta[9];
-        puts("desea ingresar o crear un nuevo usuario? (ingresar/crear)"); 
+        puts("desea ingresar o crear un nuevo perfil? (ingresar/crear)"); 
         scanf("%8s", respuesta);
         
         if (strcmp(respuesta, "crear")==0){
-            crear_usuario(mapa_usuarios);
+            crear_perfil(mapa_perfiles);
             resultado = 0;
         }
         else if (strcmp(respuesta, "ingresar")==0){
-            ingresar_usuario(mapa_usuarios, &resultado);
+            ingresar_perfil(mapa_perfiles, &resultado);
         }
         else{
             puts("respuesta no valida, intente de nuevo");
@@ -343,7 +402,8 @@ int main(){
                 printf("Opcion 3 seleccionada\n");
                 break;
             case '4':
-                printf("Saliendo...\n");
+                printf("guardando datos...\n");
+                // cuando el joje cree la funcion de recuperacion de datos integro la otra
                 break;
             case '5':
 
