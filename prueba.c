@@ -85,71 +85,12 @@ void ingresar_usuario(Map *mapa_usuarios, int *resultado) {
     }
 }
 
-void asociarServicio(MapPair *par) {
-    char servicio[50] ;
-    char opcion ;
-    printf("Ingrese nombre del servicio: ") ;
-    scanf(" %49s", servicio) ;
-
-    printf("¿Desea generar una contraseña para el servicio? s/n: ") ;
-    scanf(" %c", &opcion) ;
-    if (opcion=='s') {
-        printf("generar contraseña\n") ;
-    }
-    else {
-        printf("Ingresar contraseña\n") ;
-    }
-}
-
-void crearCuenta(Map *cuentas) {
-    printf("Ingrese nombre de usuario: ") ;
-    char nombreCuenta[50] ;
-    scanf("%49s", nombreCuenta) ;
-
-    MapPair *valor=map_search(cuentas, nombreCuenta) ;
-    if (valor!=NULL) {
-        char opcion ;
-        printf("¡Nombre de usuario ya en uso!\n") ;
-        printf("¿Desea asociar un nuevo servicio al usuario ingresado? s/n: ") ;
-        scanf(" %c", &opcion) ;
-        if (opcion=='s') {
-            asociarServicio(valor) ;
-        }
-        else printf("Intente ingresar una cuenta nuevamente\n") ;
-    }
-    else {
-        char servicio[50] ;
-        char opcion2 ;
-        char contrasena_ingresada[50] = "Clave123";
-        usuario *nuevo=(usuario*) malloc(sizeof(usuario)) ;
-
-        strcpy(nuevo->nombre, nombreCuenta) ;
-        nuevo->mapa_claves=map_create(is_equal_str) ;
-
-        printf("Ingrese nombre del servicio: ") ;
-        scanf("%49s", servicio) ;
-
-        printf("¿Desea generar una contraseña para el servicio? s/n: ") ;
-        scanf(" %c", &opcion2) ;
-        if (opcion2=='s') {
-            printf("generar contraseña\n") ;
-        }
-        else {
-            printf("Ingresar contraseña\n") ;
-            printf("Ingrese la contraseña: ");
-            scanf("%49s", contrasena_ingresada);
-        }
-        printf("Cuenta ingresada correctamente\n") ;
-        
-        map_insert(nuevo->mapa_claves, servicio, contrasena_ingresada) ; 
-    }
-}
-
 void buscarContra(Map *nombresUsuarios) {
     char opcion ;
-    printf("¿Desea buscar por nombre de usuario o cuenta?") ;
-    printf("1. Usuario\n2. Cuenta\n") ;
-    scanf("%c", &opcion) ;
+    printf("¿Desea buscar por nombre de usuario o cuenta?\n") ;
+    printf("1. Usuario\n") ;
+    printf("2. Cuenta\n") ;
+    scanf(" %c", &opcion) ;
 
     if (opcion=='1') {
         char user[50] ;
@@ -172,18 +113,19 @@ void buscarContra(Map *nombresUsuarios) {
             scanf("%s", servicio) ;
             MapPair *par=map_search(mapaServicios, servicio) ;
             if (par!=NULL) {
-                char clave[20] ;
-                strcpy(clave, par->value) ;
+                //char clave[20] ;
+                //strcpy(clave, par->value) ;
                 // funcion de cifrado para descifrar
                 printf("Nombre de usuario: %s\n", user) ;
-                printf("Cuenta: %s\n", servicio) ;
-                printf("Clave: %s\n", clave) ;
+                printf("Cuenta: %s\n", par->key) ;
+                printf("Clave: %s\n", par->value) ;
             }
+            else printf("Servicio no encontrado.\n") ;
         }
     }
     if (opcion=='2') {
         char cuenta[50] ;
-        unsigned short aux=0 ;
+        unsigned short aux=1 ;
         printf("Ingrese cuenta: ") ;
         scanf("%s, cuenta") ;
         
@@ -191,10 +133,7 @@ void buscarContra(Map *nombresUsuarios) {
         while (usuarios!=NULL) {
             Map *servicios=usuarios->value ;
             MapPair *servicio=map_search(servicios, cuenta) ;
-            if (servicio==NULL) {
-                aux=1 ;
-            }
-            else {
+            if (servicio!=NULL) {
                 char clave[20] ;
                 strcpy(clave, servicio->value) ;
                 //funcion cifrado para descifrar
@@ -269,6 +208,86 @@ void claveAleatoria(char *clave, int largo){
 
 }
 
+void asociarServicio(MapPair *par) {
+    char servicio[50] ;
+    char opcion ;
+    char clave[17] ;
+    printf("Ingrese nombre del servicio: ") ;
+    scanf(" %49s", servicio) ;
+
+    cuenta *nueva=(cuenta*) malloc(sizeof(cuenta)) ;
+    strcpy(nueva->nombreCuenta, servicio) ;
+
+    printf("¿Desea generar una contraseña para el servicio? s/n: ") ;
+    scanf(" %c", &opcion) ;
+    if (opcion=='s') {
+        claveAleatoria(clave, 16) ;
+        printf("Clave generada: %s\n", clave) ;
+    }
+    else {
+        printf("Ingresar contraseña\n") ;
+    }
+
+    strcpy(nueva->password, clave) ;
+
+    map_insert(par->value, nueva->nombreCuenta, nueva->password) ;
+}
+
+void crearCuenta(Map *cuentas, List *lista) {
+    printf("Ingrese nombre de usuario: ") ;
+    char nombreCuenta[50] ;
+    scanf("%49s", nombreCuenta) ;
+    MapPair *valor=map_search(cuentas, nombreCuenta) ;
+    if (valor!=NULL) {
+        char opcion ;
+        printf("¡Nombre de usuario ya en uso!\n") ;
+        printf("¿Desea asociar un nuevo servicio al usuario ingresado? s/n: ") ;
+        scanf(" %c", &opcion) ;
+        if (opcion=='s') {
+            asociarServicio(valor) ;
+        }
+        else printf("Intente ingresar una cuenta nuevamente\n") ;
+    }
+    else {
+        char servicio[50] ;
+        char opcion2 ;
+        char clave[20] ;
+        usuario *nuevo=(usuario*) malloc(sizeof(usuario)) ;
+
+        strcpy(nuevo->nombre, nombreCuenta) ;
+        nuevo->mapa_claves=map_create(is_equal_str) ;
+
+        printf("Ingrese nombre del servicio: ") ;
+        scanf("%49s", servicio) ;
+
+        cuenta *nueva=(cuenta*) malloc(sizeof(cuenta)) ;
+        strcpy(nueva->nombreCuenta, servicio) ;
+
+        printf("¿Desea generar una contraseña para el servicio? s/n: ") ;
+        scanf(" %c", &opcion2) ;
+        if (opcion2=='s') {
+            char clave[17] ;
+            claveAleatoria(clave, 16) ;
+            printf("Clave generada: %s\n", clave) ;
+            strcpy(nueva->password, clave) ;
+        }
+        else {
+            printf("Ingrese una contraseña: ");
+            scanf("%16s", clave);
+            verificarClave(clave, lista) ;
+            strcpy(nueva->password, clave) ;
+        }
+        printf("Cuenta ingresada correctamente\n") ;
+
+        
+        
+        
+        map_insert(nuevo->mapa_claves, nueva->nombreCuenta, nueva->password) ; 
+        map_insert(cuentas, nuevo->nombre, nuevo->mapa_claves) ;
+    }
+}
+
+
 int main(){
     printf("Bienvenido al gestor de claves\n");
     printf("Cargando claves mas usadas...\n");
@@ -315,10 +334,10 @@ int main(){
 
         switch (opcion) {
             case '1':
-                crearCuenta(mapaUsuarios);
+                crearCuenta(mapaUsuarios, lista_clavesMasUsadas);
                 break;
             case '2':
-                printf("Opcion 2 seleccionada\n");
+                buscarContra(mapaUsuarios) ;
                 break;
             case '3':
                 printf("Opcion 3 seleccionada\n");
