@@ -269,8 +269,8 @@ void claveAleatoria(char *clave, int largo){
         int simbolo = 0;
 
         for (int i = 0; i < largo; i++){
-            int indice = rand() % cantidad_caracteres;
-            clave[i] = caracteres[indice];
+            int caracter = rand() % cantidad_caracteres;
+            clave[i] = caracteres[caracter];
         }
         clave[largo] = '\0'; 
 
@@ -383,7 +383,8 @@ int main(){
                 printf("Opcion 3 seleccionada\n");
                 break;
             case '4':
-                printf("Saliendo...\n");
+                printf("guardando datos...\n");
+                // cuando el joje cree la funcion de recuperacion de datos integro la otra
                 break;
             case '5':
 
