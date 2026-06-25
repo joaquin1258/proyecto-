@@ -144,7 +144,7 @@ void buscarContra(Map *nombresUsuarios) {
     }
 }
 
-void verificarClave(char *clave, List *lista_clavesMasUsadas) {
+int verificarClave(char *clave, List *lista_clavesMasUsadas) {
     int largo = strlen(clave);
     int mayuscula = 0; 
     int minuscula = 0;
@@ -157,7 +157,7 @@ void verificarClave(char *clave, List *lista_clavesMasUsadas) {
         while(clave_comun != NULL) {
             if(strcmp(clave, clave_comun) == 0) {
                 printf("La clave es demasiado común y no es segura.\n");
-                return;
+                return 0;
             }
             clave_comun = (char *)list_next(lista_clavesMasUsadas);
         }
@@ -165,7 +165,7 @@ void verificarClave(char *clave, List *lista_clavesMasUsadas) {
 
     if(largo < 12) {
         printf("La clave es demasiado corta y no es segura.\n");
-        return;
+        return 0;
     }
 
     for(int i = 0; i < largo; i++){
@@ -177,10 +177,11 @@ void verificarClave(char *clave, List *lista_clavesMasUsadas) {
 
     if(mayuscula < 1 || minuscula < 1 || numero < 1 || simbolo < 1) {
         printf("La clave no cumple con los requisitos de seguridad.\n");
-        return;
+        return 0;
     }
 
     printf("La clave es segura.\n");
+    return 1;
 }
 
 void claveAleatoria(char *clave, int largo){
@@ -246,7 +247,7 @@ int guardado(const char *nombreArchivo, Map* mapa_perfiles) {
 }
 
 int recuperarDatos(const char *nombre, Map *mapa_perfiles) {
-    FILE *archivo = fopen(nombreArchivo, "rb");
+    FILE *archivo = fopen(nombre, "rb");
     if (archivo == NULL) {
         printf("Base de datos vacía.\n");
         return 0;
@@ -283,7 +284,7 @@ int recuperarDatos(const char *nombre, Map *mapa_perfiles) {
     }
 
     fclose(archivo);
-    printf("Datos recuperados exitosamente desde '%s'.\n", nombreArchivo);
+    printf("Datos recuperados exitosamente desde '%s'.\n", nombre);
     return 1;
 }
 
