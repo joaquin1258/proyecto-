@@ -209,7 +209,7 @@ int main(){
         puts("4) salir");
         puts("5) verificar clave");
         
-        printf("Ingrese su opción: ");
+        printf("Ingrese su opcion: ");
         scanf(" %c", &opcion);
 
         switch (opcion) {
