@@ -85,6 +85,26 @@ void ingresar_perfil(Map *mapa_perfiles, int *resultado) {
     }
 }
 
+
+int contrRepetida(char *clave, Map *usuarios) {
+    int cont=0 ;
+
+    MapPair *aux=map_first(usuarios) ;
+    while(aux!=NULL) {
+        Map *servicios=aux->value ;
+        MapPair *auxServ=map_first(servicios) ;
+        while(auxServ!=NULL) {
+            if (strcmp(clave, auxServ->value)==0) {
+                cont++ ;
+            }
+            auxServ=map_next(servicios) ;
+        }
+        aux=map_next(usuarios) ;
+    }
+
+    return cont ;
+}
+
 void buscarContra(Map *nombresUsuarios) {
     char opcion ;
     printf("¿Desea buscar por nombre de usuario o cuenta?\n") ;
