@@ -321,7 +321,7 @@ int verificarClave(char *clave, List *lista_clavesMasUsadas) {
     return 1;
 }
 
-void asociarServicio(MapPair *par) {
+void asociarServicio(MapPair *par, unsigned char *claveDerivada, List *lista) {
     char servicio[50] ;
     char opcion ;
     char clave[50] ;
@@ -338,12 +338,15 @@ void asociarServicio(MapPair *par) {
         printf("Clave generada: %s\n", clave) ;
     }
     else {
-        printf("Ingrese una clave: ");
-        scanf("%49s", clave);
+        do {
+            printf("Ingrese una clave: ");
+            scanf("%49s", clave);
+        } while (verificarClave(clave, lista)==0) ;
     }
-
-    strcpy(nueva->password, clave) ;
-    map_insert(par->value, nueva->nombreCuenta, nueva->password);
+    unsigned char contraCifrada[64] = {0};
+    funcionAES256Cifrar(claveDerivada, clave, contraCifrada) ;
+    memcpy(nueva->password, contraCifrada, 64) ;
+    map_insert(par->value, nueva->nombreCuenta, nueva->password) ;
 }
 
 void crearUsuario(Map *usuarios, List *lista, unsigned char *claveDerivada) {
@@ -357,7 +360,7 @@ void crearUsuario(Map *usuarios, List *lista, unsigned char *claveDerivada) {
         printf("¿Desea asociar una nueva cuenta al usuario ingresado? s/n: ") ;
         scanf(" %c", &opcion) ;
         if (opcion=='s') {
-            asociarServicio(valor) ;
+            asociarServicio(valor, claveDerivada, lista) ;
         }
         else printf("Intente ingresar una cuenta nuevamente\n") ;
     }
@@ -383,7 +386,6 @@ void crearUsuario(Map *usuarios, List *lista, unsigned char *claveDerivada) {
             strcpy(nueva->password, clave) ;
         }
         else {
-
             do {
                 printf("Ingrese una clave: ");
                 scanf("%49s", clave);
