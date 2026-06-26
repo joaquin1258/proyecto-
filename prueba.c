@@ -80,7 +80,6 @@ void crear_perfil(Map *mapa_perfiles) {
     }
 }
 
-
 usuario* ingresar_perfil(Map *mapa_perfiles, int *resultado) {
     char nombre_perfil[50];
     puts("ingrese el nombre del perfil: ");
@@ -96,7 +95,6 @@ usuario* ingresar_perfil(Map *mapa_perfiles, int *resultado) {
         return (usuario *)perfil_encontrado->value;
     }
 }
-
 
 int contrRepetida(char *clave, Map *usuarios) {
     int cont=0 ;
@@ -371,6 +369,7 @@ void claves_mas_usadas(List *lista) {
         clave = (char *)list_next(lista);
     }
 }
+
 void funcionPBKDF2(char *claveUnica, char *salt, unsigned char *claveDerivada) {
 
     BCRYPT_ALG_HANDLE handle=NULL ; 
@@ -417,6 +416,43 @@ void funcionAES256Descifrar(unsigned char *claveDerivada, unsigned char *contraC
     BCryptCloseAlgorithmProvider(handle, 0) ;
 }
 
+void cambiar_clave(Map *cuentas, List *lista) {
+    char nombre[50];
+    printf("Ingrese el nombre del servicio / cuenta para cambiar la clave: ");
+    scanf("%49s", nombre);
+    MapPair *pair_buscado = map_search(cuentas, nombre);
+    if (pair_buscado !=NULL){
+        cuenta *cuenta_auxi = (cuenta *)pair_buscado->value;
+        int opcion;
+        printf("desea generar una nueva clave aleatoria o ingresar una nueva clave? ");
+        printf("1. Generar clave aleatoria\n");
+        printf("2. Ingresar nueva clave\n");
+        scanf("%d", &opcion);
+        if (opcion == 1){
+            char nueva_clave[50];
+            claveAleatoria(nueva_clave, 20);
+            printf("Nueva clave generada: %s\n", nueva_clave);
+            strcpy(cuenta_auxi->password, nueva_clave);
+            printf("Clave cambiada exitosamente.\n");
+        }
+        else if (opcion == 2){
+            char nueva_clave[50];
+            printf("Ingrese la nueva clave: ");
+            scanf("%49s", nueva_clave);
+            verificarClave(nueva_clave, lista);
+            strcpy(cuenta_auxi->password, nueva_clave);
+            printf("Clave cambiada exitosamente.\n");
+
+        }
+        else{
+            printf("Opción no válida, no se realizó ningún cambio.\n");
+        }
+    }
+    else{
+        printf("Servicio / cuenta no encontrado.\n");
+    }
+
+}
 
 int main(){
     printf("Bienvenido al gestor de claves\n");
@@ -484,6 +520,7 @@ int main(){
                 break;
             case '3':
                 printf("Opcion 3 seleccionada\n");
+                cambiar_clave(mapaUsuarios, lista_clavesMasUsadas);
                 break;
             case '4': {
                 char clave[50];
