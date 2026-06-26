@@ -6,6 +6,8 @@
 #include "tdas/list.h"
 #include "tdas/map.h"
 #include <time.h>
+#include <windows.h>
+#include "bcrypt.h"
 
 
 typedef struct {
@@ -353,6 +355,19 @@ void crearCuenta(Map *cuentas, List *lista) {
     }
 }
 
+void funcionPBKDF2(char *claveUnica, char *salt, unsigned char *claveDerivada) {
+
+    BCRYPT_ALG_HANDLE handle=NULL ; 
+    BCryptOpenAlgorithmProvider(&handle, L"PBKDF2", NULL, 0) ;
+
+
+    BCryptDeriveKeyPBKDF2(handle, (PUCHAR) claveUnica, strlen(claveUnica), (PUCHAR) salt, strlen(salt), 10000, claveDerivada, 32, 0) ;
+
+    BCryptCloseAlgorithmProvider(handle, 0) ;
+
+}
+
+
 
 int main(){
     printf("Bienvenido al gestor de claves\n");
@@ -368,7 +383,7 @@ int main(){
 
     int estado = recuperarDatos("datos.dat", mapa_perfiles);
 
-    if (estadoCarga == 1){
+    if (estado == 1){
         printf("Bienvenido de nuevo, se han cargado los datos previamente guardados.\n");
     }
     else{
