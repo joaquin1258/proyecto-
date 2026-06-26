@@ -362,7 +362,6 @@ void crearCuenta(Map *cuentas, List *lista) {
     }
 }
 
-<<<<<<< HEAD
 void claves_mas_usadas(List *lista) {
 
     printf("claves mas usadas:\n");
@@ -372,7 +371,6 @@ void claves_mas_usadas(List *lista) {
         clave = (char *)list_next(lista);
     }
 }
-=======
 void funcionPBKDF2(char *claveUnica, char *salt, unsigned char *claveDerivada) {
 
     BCRYPT_ALG_HANDLE handle=NULL ; 
@@ -385,8 +383,40 @@ void funcionPBKDF2(char *claveUnica, char *salt, unsigned char *claveDerivada) {
 
 }
 
+void funcionAES256Cifrar(unsigned char *claveDerivada, char *password, unsigned char *contraCifrada) {
+    BCRYPT_ALG_HANDLE handle=NULL ;
+    BCryptOpenAlgorithmProvider(&handle, L"AES", NULL, 0) ;
 
->>>>>>> 09b13bce4d7b36c2b40d948f43aa0f202424bef3
+    BCryptSetProperty(handle, BCRYPT_CHAINING_MODE, BCRYPT_CHAIN_MODE_CBC, sizeof(BCRYPT_CHAIN_MODE_CBC), 0) ;
+
+    BCRYPT_KEY_HANDLE handleLLave=NULL ;
+    BCryptGenerateSymmetricKey(handle, &handleLLave, NULL, 0, (PUCHAR) claveDerivada, 32, 0) ;
+
+    unsigned char arreglo[16]= {0} ;
+    ULONG cantBytes=0 ;
+    BCryptEncrypt(handleLLave, (PUCHAR) password, strlen(password), NULL, (PUCHAR) arreglo, 16, contraCifrada, 64, &cantBytes, 0) ;
+
+    BCryptDestroyKey(handleLLave) ;
+    BCryptCloseAlgorithmProvider(handle, 0) ;
+}
+
+void funcionAES256Descifrar(unsigned char *claveDerivada, unsigned char *contraCifrada, char *passwordOriginal) {
+    BCRYPT_ALG_HANDLE handle=NULL ;
+    BCryptOpenAlgorithmProvider(&handle, L"AES", NULL, 0) ;
+
+    BCryptSetProperty(handle, BCRYPT_CHAINING_MODE, BCRYPT_CHAIN_MODE_CBC, sizeof(BCRYPT_CHAIN_MODE_CBC), 0) ;
+
+    BCRYPT_KEY_HANDLE handleLLave=NULL ;
+    BCryptGenerateSymmetricKey(handle, &handleLLave, NULL, 0, (PUCHAR) claveDerivada, 32, 0) ;
+
+    unsigned char arreglo[16]= {0} ;
+    ULONG cantBytes=0 ;
+    BCryptDecrypt(handleLLave, (PUCHAR) contraCifrada, 64, NULL, (PUCHAR) arreglo, 16, passwordOriginal, 64, &cantBytes, 0) ;
+
+    BCryptDestroyKey(handleLLave) ;
+    BCryptCloseAlgorithmProvider(handle, 0) ;
+}
+
 
 int main(){
     printf("Bienvenido al gestor de claves\n");
