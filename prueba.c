@@ -362,7 +362,6 @@ void crearCuenta(Map *cuentas, List *lista) {
     }
 }
 
-<<<<<<< HEAD
 void claves_mas_usadas(List *lista) {
 
     printf("claves mas usadas:\n");
@@ -372,7 +371,6 @@ void claves_mas_usadas(List *lista) {
         clave = (char *)list_next(lista);
     }
 }
-=======
 void funcionPBKDF2(char *claveUnica, char *salt, unsigned char *claveDerivada) {
 
     BCRYPT_ALG_HANDLE handle=NULL ; 
@@ -386,7 +384,6 @@ void funcionPBKDF2(char *claveUnica, char *salt, unsigned char *claveDerivada) {
 }
 
 
->>>>>>> 09b13bce4d7b36c2b40d948f43aa0f202424bef3
 
 int main(){
     printf("Bienvenido al gestor de claves\n");
