@@ -31,7 +31,7 @@ pfnBCryptEncrypt fn_BCryptEncrypt = NULL;
 pfnBCryptDecrypt fn_BCryptDecrypt = NULL;
 pfnBCryptDestroyKey fn_BCryptDestroyKey = NULL;
 
-// Esta función cargará automáticamente la versión de bcrypt que corresponda a tu sistema
+// Esta función cargará automáticamente la versión de bcrypt que corresponda al sistema
 int inicializarCriptografia() {
     HMODULE hBCrypt = LoadLibraryA("bcrypt.dll");
     if (!hBCrypt) return 0;
@@ -111,15 +111,15 @@ void funcionAES256Cifrar(unsigned char *claveDerivada, char *password, unsigned 
     HANDLE handle=NULL ;
     fn_BCryptOpenAlgorithmProvider(&handle, L"AES", NULL, 0) ;
     
-    // Usamos cadenas literales para evitar depender de las macros de bcrypt.h
     fn_BCryptSetProperty(handle, L"ChainingMode", (PUCHAR) L"ChainingModeCBC", sizeof(L"ChainingModeCBC"), 0) ;
 
     HANDLE handleLLave=NULL ;
     fn_BCryptGenerateSymmetricKey(handle, &handleLLave, NULL, 0, (PUCHAR) claveDerivada, 32, 0) ;
 
-    unsigned char arreglo[16]= {0} ;
+    unsigned char iv[16] = {0}; 
     ULONG cantBytes=0 ;
-    fn_BCryptEncrypt(handleLLave, (PUCHAR) password, strlen(password), NULL, (PUCHAR) arreglo, 16, contraCifrada, 64, &cantBytes, 0) ;
+    
+    fn_BCryptEncrypt(handleLLave, (PUCHAR) password, strlen(password), NULL, iv, 16, contraCifrada, 64, &cantBytes, 0) ;
 
     fn_BCryptDestroyKey(handleLLave) ;
     fn_BCryptCloseAlgorithmProvider(handle, 0) ;
@@ -134,9 +134,16 @@ void funcionAES256Descifrar(unsigned char *claveDerivada, unsigned char *contraC
     HANDLE handleLLave=NULL ;
     fn_BCryptGenerateSymmetricKey(handle, &handleLLave, NULL, 0, (PUCHAR) claveDerivada, 32, 0) ;
 
-    unsigned char arreglo[16]= {0} ;
+    unsigned char iv[16] = {0}; 
     ULONG cantBytes=0 ;
-    fn_BCryptDecrypt(handleLLave, (PUCHAR) contraCifrada, 64, NULL, (PUCHAR) arreglo, 16, passwordOriginal, 64, &cantBytes, 0) ;
+    
+    fn_BCryptDecrypt(handleLLave, (PUCHAR) contraCifrada, 64, NULL, iv, 16, (PUCHAR) passwordOriginal, 64, &cantBytes, 0) ;
+
+    if (cantBytes < 64) {
+        passwordOriginal[cantBytes] = '\0';
+    } else {
+        passwordOriginal[63] = '\0';
+    }
 
     fn_BCryptDestroyKey(handleLLave) ;
     fn_BCryptCloseAlgorithmProvider(handle, 0) ;
@@ -203,17 +210,26 @@ usuario* ingresar_perfil(Map *mapa_perfiles, int *resultado) {
     }
 }
 
-int contrRepetida(char *clave, Map *usuarios) {
-    int cont=0 ;
-    MapPair *aux=map_first(usuarios) ;
-    while(aux!=NULL) {
+int contrRepetida(char *clave, Map *usuarios, usuario *perfil) {
+    int cont = 0;
+    MapPair *aux = map_first(usuarios);
+    
+    unsigned char claveDerivada[32];
+    funcionPBKDF2(perfil->nombre, perfil->salt, claveDerivada);
+    
+    while(aux != NULL) {
         cuenta *c = (cuenta *)aux->value;
-        if (strcmp(clave, c->password)==0) {
-            cont++ ;
+        char des_password[68] = {0}; 
+        
+        funcionAES256Descifrar(claveDerivada, (unsigned char*)c->password, des_password);
+        
+        if (strcmp(clave, des_password) == 0) {
+            cont++;
         }
-        aux=map_next(usuarios) ;
+        
+        aux = map_next(usuarios);
     }
-    return cont ;
+    return cont;
 }
 
 void buscarContra(Map *nombresUsuarios, usuario *perfil_activo) {
@@ -346,7 +362,7 @@ void crearCuenta(Map *cuentas, usuario *perfil_activo, List *lista) {
     if (valor!=NULL) {
         char opcion ;
         printf("¡Nombre de cuenta ya en uso!\n") ;
-        printf("¿Desea asociar una nueva contraseña al servicio ingresado? s/n: ") ;
+        printf("¿Desea asociar una nueva clave al servicio ingresado? s/n: ") ;
         scanf(" %c", &opcion) ;
         if (opcion=='s') {
             asociarServicio(valor) ;
@@ -377,6 +393,7 @@ void crearCuenta(Map *cuentas, usuario *perfil_activo, List *lista) {
 
         funcionPBKDF2(perfil_activo->nombre, perfil_activo->salt, claveDerivada);
         funcionAES256Cifrar(claveDerivada, clave, contraCifrada);
+        memset(nueva->password, 0, sizeof(nueva->password)); 
         memcpy(nueva->password, contraCifrada, 64); 
 
         printf("Cuenta ingresada y cifrada correctamente\n") ;
@@ -400,7 +417,6 @@ int guardado(const char *nombreArchivo, Map* mapa_perfiles) {
         return 0;
     }
 
-    // CORRECCIÓN: Conteo manual de perfiles (ya que map_count no existe)
     int total_perfiles = 0;
     MapPair *aux_contar = map_first(mapa_perfiles);
     while (aux_contar != NULL) {
@@ -430,7 +446,7 @@ int guardado(const char *nombreArchivo, Map* mapa_perfiles) {
             while(pair_cuenta != NULL){
                 cuenta *c = (cuenta *) pair_cuenta->value;
                 fwrite(c->nombreCuenta, sizeof(char), 50, archivo);
-                fwrite(c->password, sizeof(char), 68, archivo); 
+                fwrite(c->password, sizeof(char), 64, archivo); 
                 pair_cuenta = map_next(user->mapa_claves);
             }
         }
@@ -470,7 +486,7 @@ int recuperarDatos(const char *nombre, Map *mapa_perfiles) {
             if (nueva == NULL) exit(EXIT_FAILURE);
 
             fread(nueva->nombreCuenta, sizeof(char), 50, archivo);
-            fread(nueva->password, sizeof(char), 68, archivo); 
+            fread(nueva->password, sizeof(char), 64, archivo); 
 
             map_insert(user->mapa_claves, nueva->nombreCuenta, nueva);
         }
@@ -479,7 +495,6 @@ int recuperarDatos(const char *nombre, Map *mapa_perfiles) {
     }
 
     fclose(archivo);
-    printf("Datos recuperados exitosamente desde '%s'.\n", nombre);
     return 1;
 }
 
@@ -517,8 +532,10 @@ void cambiar_clave(Map *cuentas, usuario *perfil_activo, List *lista) {
 
         funcionPBKDF2(perfil_activo->nombre, perfil_activo->salt, claveDerivada);
         funcionAES256Cifrar(claveDerivada, nueva_clave, contraCifrada);
+
+
+        memset(cuenta_auxi->password, 0, sizeof(cuenta_auxi->password));
         memcpy(cuenta_auxi->password, contraCifrada, 64);
-        printf("Clave cambiada y cifrada exitosamente.\n");
     }
     else{
         printf("Servicio / cuenta no encontrado.\n");
@@ -526,6 +543,10 @@ void cambiar_clave(Map *cuentas, usuario *perfil_activo, List *lista) {
 }
 
 int main(){
+    limpiarPantalla();
+    SetConsoleCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8);
+
     if (!inicializarCriptografia()) {
         printf("Error al cargar los modulos de seguridad de Windows.\n");
         return 1;
@@ -617,8 +638,8 @@ int main(){
                 char clave_rep[50];
                 printf("Ingrese clave para buscar repetidas: ");
                 scanf("%49s", clave_rep);
-                int repes = contrRepetida(clave_rep, mapaUsuarios);
-                printf("La clave se repite %d veces en este perfil.\n", repes);
+                int repetidas = contrRepetida(clave_rep, mapaUsuarios, perfil_activo);
+                printf("La clave se repite %d veces en este perfil.\n", repetidas);
                 break;
             }
             case '6':
