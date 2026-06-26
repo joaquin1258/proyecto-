@@ -362,25 +362,12 @@ void asociarServicio(MapPair *par, unsigned char *claveDerivada, List *lista) {
         do {
             printf("Ingrese una clave: ");
             scanf("%49s", clave);
-<<<<<<< HEAD
         } while (verificarClave(clave, lista)==0) ;
     }
     unsigned char contraCifrada[64] = {0};
     funcionAES256Cifrar(claveDerivada, clave, contraCifrada) ;
     memcpy(nueva->password, contraCifrada, 64) ;
     map_insert(par->value, nueva->nombreCuenta, nueva->password) ;
-=======
-        } while (verificarClave(clave, lista)==0);
-    }
-
-    unsigned char contraCifrada[64] = {0};
-    funcionAES256Cifrar(claveDerivada, clave, contraCifrada);
-    memset(nueva->password, 0, sizeof(nueva->password));
-    memcpy(nueva->password, contraCifrada, 64);
-
-    Map *mapaServicios = (Map *)par->value;
-    map_insert(mapaServicios, nueva->nombreCuenta, nueva);
->>>>>>> e5180c7448eb535c4c40a22e77ce27c6be908169
 }
 
 void crearCuenta(Map *usuarios, List *lista, unsigned char *claveDerivada) {
