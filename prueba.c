@@ -163,7 +163,6 @@ List *cargarClavesMasUsadas() {
     }
 
     fclose(archivo); 
-    printf("Claves cargadas exitosamente en la lista.\n");
     return lista;
 }
 
@@ -270,7 +269,7 @@ void buscarContra(Map *nombresUsuarios, usuario *perfil_activo) {
         }
     }
     else if (opcion != '1' && opcion != '2') {
-        printf("ERROR, opción inválida.\n") ;
+        printf("ERROR, opcion invalida.\n") ;
     }
 }
 
@@ -286,7 +285,7 @@ int verificarClave(char *clave, List *lista_clavesMasUsadas) {
 
         while(clave_comun != NULL) {
             if(strcmp(clave, clave_comun) == 0) {
-                printf("La clave es demasiado común y no es segura.\n");
+                printf("La clave es demasiado comun y no es segura.\n");
                 return 0;
             }
             clave_comun = (char *)list_next(lista_clavesMasUsadas);
@@ -324,14 +323,14 @@ void asociarServicio(MapPair *par) {
     cuenta *nueva=(cuenta*) malloc(sizeof(cuenta)) ;
     strcpy(nueva->nombreCuenta, servicio) ;
 
-    printf("¿Desea generar una contraseña para el servicio? s/n: ") ;
+    printf("¿Desea generar una clave para el servicio? s/n: ") ;
     scanf(" %c", &opcion) ;
     if (opcion=='s') {
         claveAleatoria(clave, 16) ;
         printf("Clave generada: %s\n", clave) ;
     }
     else {
-        printf("Ingrese una contraseña: ");
+        printf("Ingrese una clave: ");
         scanf("%49s", clave);
     }
 
@@ -360,14 +359,14 @@ void crearCuenta(Map *cuentas, usuario *perfil_activo, List *lista) {
         cuenta *nueva=(cuenta*) malloc(sizeof(cuenta)) ;
         strcpy(nueva->nombreCuenta, nombreCuenta) ;
 
-        printf("¿Desea generar una contraseña para el servicio? s/n: ") ;
+        printf("¿Desea generar una clave para el servicio? s/n: ") ;
         scanf(" %c", &opcion2) ;
         if (opcion2=='s') {
             claveAleatoria(clave, 16) ;
             printf("Clave generada: %s\n", clave) ;
         }
         else {
-            printf("Ingrese una contraseña: ");
+            printf("Ingrese una clave: ");
             scanf("%49s", clave);
             verificarClave(clave, lista) ;
         }
@@ -418,7 +417,6 @@ int guardado(const char *nombreArchivo, Map* mapa_perfiles) {
             fwrite(user->nombre, sizeof(char), 50, archivo);
             fwrite(user->salt, sizeof(char), 16, archivo); 
             
-            // CORRECCIÓN: Conteo manual de las cuentas asociadas al mapa del usuario
             int total_cuentas = 0;
             MapPair *aux_cuentas = map_first(user->mapa_claves);
             while (aux_cuentas != NULL) {
@@ -445,7 +443,7 @@ int guardado(const char *nombreArchivo, Map* mapa_perfiles) {
 int recuperarDatos(const char *nombre, Map *mapa_perfiles) {
     FILE *archivo = fopen(nombre, "rb");
     if (archivo == NULL) {
-        printf("Base de datos vacía.\n");
+        printf("Base de datos vacia.\n");
         return 0;
     }
 
@@ -509,7 +507,7 @@ void cambiar_clave(Map *cuentas, usuario *perfil_activo, List *lista) {
             verificarClave(nueva_clave, lista);
         }
         else{
-            printf("Opción no válida, no se realizó ningún cambio.\n");
+            printf("Opcion no valida, no se realizo ningun cambio.\n");
             return;
         }
 
@@ -529,7 +527,7 @@ void cambiar_clave(Map *cuentas, usuario *perfil_activo, List *lista) {
 
 int main(){
     if (!inicializarCriptografia()) {
-        printf("Error al cargar los módulos de seguridad de Windows.\n");
+        printf("Error al cargar los modulos de seguridad de Windows.\n");
         return 1;
     }
 
@@ -562,8 +560,6 @@ int main(){
         if (strcmp(respuesta, "crear")==0){
             crear_perfil(mapa_perfiles);
             
-            // AUTOMATIZACIÓN: Buscamos el perfil que se acaba de crear para activarlo 
-            // e indicamos que ya podemos salir del ciclo cambiando resultado a 0.
             puts("Por favor, confirma el ingreso al perfil que acabas de crear:");
             perfil_activo = ingresar_perfil(mapa_perfiles, &resultado);
             if (perfil_activo != NULL) {
@@ -619,7 +615,7 @@ int main(){
             }
             case '5': {
                 char clave_rep[50];
-                printf("Ingrese clave para buscar repetidas (en formato cifrado): ");
+                printf("Ingrese clave para buscar repetidas: ");
                 scanf("%49s", clave_rep);
                 int repes = contrRepetida(clave_rep, mapaUsuarios);
                 printf("La clave se repite %d veces en este perfil.\n", repes);
