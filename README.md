@@ -27,3 +27,15 @@ Despues en la misma terminal, para ejecutar el programa ingresas la siguiente li
 ````
 ./programa
 ````
+
+## Funcionalidades 
+
+### Funcionando correctamente:
+
+El programa implementa varias funcionalidades antes de entrar al menu principal, la cuales son: 
+1) `CargarcargarClavesMasUsadas`: a partir del archivo "comunes.txt" crea una lista con las 1000 claves mas usadas 
+2) `recuperarDatos`: carga los datos anteriormente ocupados en la aplicacion, guardados en el archivo "datos.dat" 
+3) `crear_perfil`: crea un perfil para un usuario que ingresa por primera vez a la aplicacion, el cual se guarda en el mapa de perfiles
+4) `ingresar_perfil`: el usuario ingresa su perfil anteriormente usado en la aplicacion, el cual estaba guardado en el mapa de perfiles y verifica si en efecto el usuario creo un perfil anteriormente
+
+Ya en el menu principales, la aplicacion implementa las siguiente funciones: 
