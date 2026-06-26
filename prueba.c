@@ -2,14 +2,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+
+#define N N_evitar_conflicto 
 #include "tdas/extra.h"
+#undef N
+
 #include "tdas/list.h"
 #include "tdas/map.h"
 #include <time.h>
 #include <windows.h>
 #include "bcrypt.h"
-
-#undef N
 
 typedef struct {
     char nombrePerfil[50] ;
