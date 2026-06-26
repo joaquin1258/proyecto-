@@ -27,3 +27,33 @@ Despues en la misma terminal, para ejecutar el programa ingresas la siguiente li
 ````
 ./programa
 ````
+### contribuciones
+
+#### Jorge Alfaro
+
+    Desarrollo del informe
+    Función de búsqueda y carga de contraseñas más usadas
+    Función de modificar contraseñas
+    Función de contraseñas repetidas
+    Función de verificación de contraseñas
+    Función de recuperación de datos
+    Función de cifrado simétrico
+
+#### Denisse Godoy
+    Desarrollo del informe
+    Función de ingresar cuenta
+    Función de búsqueda de contraseña
+    Función de contraseñas repetidas
+    Función de creación de contraseñas
+    Función de derivación de claves
+    Función de cifrado simétrico
+
+#### Joaquin Cortez
+    Desarrollo del informe
+    Función de ingresar cuenta
+    Función de búsqueda de contraseña
+    Función de contraseñas repetidas
+    Función de creación de contraseñas
+    Función de derivación de claves
+    Función de cifrado simétrico
+

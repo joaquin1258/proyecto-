@@ -360,6 +360,15 @@ void crearCuenta(Map *cuentas, List *lista) {
     }
 }
 
+void claves_mas_usadas(List *lista) {
+
+    printf("claves mas usadas:\n");
+    char *clave = (char *)list_first(lista);
+    while (clave != NULL) {
+        printf("%s\n", clave);
+        clave = (char *)list_next(lista);
+    }
+}
 
 int main(){
     printf("Bienvenido al gestor de claves\n");
@@ -445,6 +454,7 @@ int main(){
             }
             case '6':
                 printf("Opcion 6 seleccionada\n");
+                claves_mas_usadas(lista_clavesMasUsadas);
                 break;
             case '7':
                 printf("Saliendo del programa y guardando...\n");
