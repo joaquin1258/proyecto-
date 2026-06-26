@@ -2,12 +2,52 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+
+#include "tdas/extra.h" 
+#undef N              
+
 #include "tdas/list.h"
 #include "tdas/map.h"
-#include "tdas/extra.h"
 #include <time.h>
 #include <windows.h>
-#include "bcrypt.h"
+
+// --- TIPOS DE FUNCIONES PARA CARGAR DE FORMA DINÁMICA DE REEMPLAZO A BCRYPT.H ---
+typedef LONG (WINAPI *pfnBCryptOpenAlgorithmProvider)(HANDLE*, LPCWSTR, LPCWSTR, ULONG);
+typedef LONG (WINAPI *pfnBCryptDeriveKeyPBKDF2)(HANDLE, PUCHAR, ULONG, PUCHAR, ULONG, ULONGLONG, PUCHAR, ULONG, ULONG);
+typedef LONG (WINAPI *pfnBCryptCloseAlgorithmProvider)(HANDLE, ULONG);
+typedef LONG (WINAPI *pfnBCryptSetProperty)(HANDLE, LPCWSTR, PUCHAR, ULONG, ULONG);
+typedef LONG (WINAPI *pfnBCryptGenerateSymmetricKey)(HANDLE, HANDLE*, PUCHAR, ULONG, PUCHAR, ULONG, ULONG);
+typedef LONG (WINAPI *pfnBCryptEncrypt)(HANDLE, PUCHAR, ULONG, void*, PUCHAR, ULONG, PUCHAR, ULONG, ULONG*, ULONG);
+typedef LONG (WINAPI *pfnBCryptDecrypt)(HANDLE, PUCHAR, ULONG, void*, PUCHAR, ULONG, PUCHAR, ULONG, ULONG*, ULONG);
+typedef LONG (WINAPI *pfnBCryptDestroyKey)(HANDLE);
+
+// Punteros de función globales
+pfnBCryptOpenAlgorithmProvider fn_BCryptOpenAlgorithmProvider = NULL;
+pfnBCryptDeriveKeyPBKDF2 fn_BCryptDeriveKeyPBKDF2 = NULL;
+pfnBCryptCloseAlgorithmProvider fn_BCryptCloseAlgorithmProvider = NULL;
+pfnBCryptSetProperty fn_BCryptSetProperty = NULL;
+pfnBCryptGenerateSymmetricKey fn_BCryptGenerateSymmetricKey = NULL;
+pfnBCryptEncrypt fn_BCryptEncrypt = NULL;
+pfnBCryptDecrypt fn_BCryptDecrypt = NULL;
+pfnBCryptDestroyKey fn_BCryptDestroyKey = NULL;
+
+// Esta función cargará automáticamente la versión de bcrypt que corresponda a tu sistema
+int inicializarCriptografia() {
+    HMODULE hBCrypt = LoadLibraryA("bcrypt.dll");
+    if (!hBCrypt) return 0;
+    
+    fn_BCryptOpenAlgorithmProvider = (pfnBCryptOpenAlgorithmProvider)GetProcAddress(hBCrypt, "BCryptOpenAlgorithmProvider");
+    fn_BCryptDeriveKeyPBKDF2 = (pfnBCryptDeriveKeyPBKDF2)GetProcAddress(hBCrypt, "BCryptDeriveKeyPBKDF2");
+    fn_BCryptCloseAlgorithmProvider = (pfnBCryptCloseAlgorithmProvider)GetProcAddress(hBCrypt, "BCryptCloseAlgorithmProvider");
+    fn_BCryptSetProperty = (pfnBCryptSetProperty)GetProcAddress(hBCrypt, "BCryptSetProperty");
+    fn_BCryptGenerateSymmetricKey = (pfnBCryptGenerateSymmetricKey)GetProcAddress(hBCrypt, "BCryptGenerateSymmetricKey");
+    fn_BCryptEncrypt = (pfnBCryptEncrypt)GetProcAddress(hBCrypt, "BCryptEncrypt");
+    fn_BCryptDecrypt = (pfnBCryptDecrypt)GetProcAddress(hBCrypt, "BCryptDecrypt");
+    fn_BCryptDestroyKey = (pfnBCryptDestroyKey)GetProcAddress(hBCrypt, "BCryptDestroyKey");
+
+    return (fn_BCryptOpenAlgorithmProvider && fn_BCryptDeriveKeyPBKDF2 && fn_BCryptCloseAlgorithmProvider &&
+            fn_BCryptSetProperty && fn_BCryptGenerateSymmetricKey && fn_BCryptEncrypt && fn_BCryptDecrypt && fn_BCryptDestroyKey);
+}
 
 typedef struct {
     char nombrePerfil[50] ;
@@ -61,46 +101,45 @@ void claveAleatoria(char *clave, int largo){
 }
 
 void funcionPBKDF2(char *claveUnica, char *salt, unsigned char *claveDerivada) {
-    BCRYPT_ALG_HANDLE handle=NULL ; 
-    BCryptOpenAlgorithmProvider(&handle, L"PBKDF2", NULL, 0) ;
-    BCryptDeriveKeyPBKDF2(handle, (PUCHAR) claveUnica, strlen(claveUnica), (PUCHAR) salt, strlen(salt), 10000, claveDerivada, 32, 0) ;
-    BCryptCloseAlgorithmProvider(handle, 0) ;
+    HANDLE handle=NULL ; 
+    fn_BCryptOpenAlgorithmProvider(&handle, L"PBKDF2", NULL, 0) ;
+    fn_BCryptDeriveKeyPBKDF2(handle, (PUCHAR) claveUnica, strlen(claveUnica), (PUCHAR) salt, strlen(salt), 10000, claveDerivada, 32, 0) ;
+    fn_BCryptCloseAlgorithmProvider(handle, 0) ;
 }
 
 void funcionAES256Cifrar(unsigned char *claveDerivada, char *password, unsigned char *contraCifrada) {
-    BCRYPT_ALG_HANDLE handle=NULL ;
-    BCryptOpenAlgorithmProvider(&handle, L"AES", NULL, 0) ;
+    HANDLE handle=NULL ;
+    fn_BCryptOpenAlgorithmProvider(&handle, L"AES", NULL, 0) ;
     
-    // CORRECCIÓN: Se añade (PUCHAR) para compatibilidad de tipos con la macro de Windows
-    BCryptSetProperty(handle, BCRYPT_CHAINING_MODE, (PUCHAR) BCRYPT_CHAIN_MODE_CBC, sizeof(BCRYPT_CHAIN_MODE_CBC), 0) ;
+    // Usamos cadenas literales para evitar depender de las macros de bcrypt.h
+    fn_BCryptSetProperty(handle, L"ChainingMode", (PUCHAR) L"ChainingModeCBC", sizeof(L"ChainingModeCBC"), 0) ;
 
-    BCRYPT_KEY_HANDLE handleLLave=NULL ;
-    BCryptGenerateSymmetricKey(handle, &handleLLave, NULL, 0, (PUCHAR) claveDerivada, 32, 0) ;
+    HANDLE handleLLave=NULL ;
+    fn_BCryptGenerateSymmetricKey(handle, &handleLLave, NULL, 0, (PUCHAR) claveDerivada, 32, 0) ;
 
     unsigned char arreglo[16]= {0} ;
     ULONG cantBytes=0 ;
-    BCryptEncrypt(handleLLave, (PUCHAR) password, strlen(password), NULL, (PUCHAR) arreglo, 16, contraCifrada, 64, &cantBytes, 0) ;
+    fn_BCryptEncrypt(handleLLave, (PUCHAR) password, strlen(password), NULL, (PUCHAR) arreglo, 16, contraCifrada, 64, &cantBytes, 0) ;
 
-    BCryptDestroyKey(handleLLave) ;
-    BCryptCloseAlgorithmProvider(handle, 0) ;
+    fn_BCryptDestroyKey(handleLLave) ;
+    fn_BCryptCloseAlgorithmProvider(handle, 0) ;
 }
 
 void funcionAES256Descifrar(unsigned char *claveDerivada, unsigned char *contraCifrada, char *passwordOriginal) {
-    BCRYPT_ALG_HANDLE handle=NULL ;
-    BCryptOpenAlgorithmProvider(&handle, L"AES", NULL, 0) ;
+    HANDLE handle=NULL ;
+    fn_BCryptOpenAlgorithmProvider(&handle, L"AES", NULL, 0) ;
     
-    // CORRECCIÓN: Se añade (PUCHAR) para compatibilidad de tipos con la macro de Windows
-    BCryptSetProperty(handle, BCRYPT_CHAINING_MODE, (PUCHAR) BCRYPT_CHAIN_MODE_CBC, sizeof(BCRYPT_CHAIN_MODE_CBC), 0) ;
+    fn_BCryptSetProperty(handle, L"ChainingMode", (PUCHAR) L"ChainingModeCBC", sizeof(L"ChainingModeCBC"), 0) ;
 
-    BCRYPT_KEY_HANDLE handleLLave=NULL ;
-    BCryptGenerateSymmetricKey(handle, &handleLLave, NULL, 0, (PUCHAR) claveDerivada, 32, 0) ;
+    HANDLE handleLLave=NULL ;
+    fn_BCryptGenerateSymmetricKey(handle, &handleLLave, NULL, 0, (PUCHAR) claveDerivada, 32, 0) ;
 
     unsigned char arreglo[16]= {0} ;
     ULONG cantBytes=0 ;
-    BCryptDecrypt(handleLLave, (PUCHAR) contraCifrada, 64, NULL, (PUCHAR) arreglo, 16, passwordOriginal, 64, &cantBytes, 0) ;
+    fn_BCryptDecrypt(handleLLave, (PUCHAR) contraCifrada, 64, NULL, (PUCHAR) arreglo, 16, passwordOriginal, 64, &cantBytes, 0) ;
 
-    BCryptDestroyKey(handleLLave) ;
-    BCryptCloseAlgorithmProvider(handle, 0) ;
+    fn_BCryptDestroyKey(handleLLave) ;
+    fn_BCryptCloseAlgorithmProvider(handle, 0) ;
 }
 
 List *cargarClavesMasUsadas() {
@@ -489,8 +528,14 @@ void cambiar_clave(Map *cuentas, usuario *perfil_activo, List *lista) {
 }
 
 int main(){
-    printf("Bienvenido al gestor de claves\n");
-    printf("Cargando claves mas usadas...\n");
+    if (!inicializarCriptografia()) {
+        printf("Error al cargar los módulos de seguridad de Windows.\n");
+        return 1;
+    }
+
+    printf("========================================\n");
+    printf("     Bienvenido al gestor de claves\n");
+    printf("========================================\n");
 
     Map *mapaUsuarios = NULL; 
     List *lista_clavesMasUsadas = cargarClavesMasUsadas(); 
@@ -516,6 +561,14 @@ int main(){
         
         if (strcmp(respuesta, "crear")==0){
             crear_perfil(mapa_perfiles);
+            
+            // AUTOMATIZACIÓN: Buscamos el perfil que se acaba de crear para activarlo 
+            // e indicamos que ya podemos salir del ciclo cambiando resultado a 0.
+            puts("Por favor, confirma el ingreso al perfil que acabas de crear:");
+            perfil_activo = ingresar_perfil(mapa_perfiles, &resultado);
+            if (perfil_activo != NULL) {
+                mapaUsuarios = perfil_activo->mapa_claves; 
+            }
         }
         else if (strcmp(respuesta, "ingresar")==0){
             perfil_activo = ingresar_perfil(mapa_perfiles, &resultado);
@@ -528,6 +581,8 @@ int main(){
         }
 
     }while(resultado != 0);
+
+    limpiarPantalla();
 
     do {
         puts("========================================");
