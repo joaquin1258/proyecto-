@@ -1,11 +1,13 @@
+#pragma comment(lib, "bcrypt.lib")
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
-#define N N_evitar_conflicto 
-#include "tdas/extra.h"
+#define N_evitar_conflicto N
 #undef N
+#include "tdas/extra.h"
 
 #include "tdas/list.h"
 #include "tdas/map.h"
