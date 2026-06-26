@@ -12,7 +12,7 @@
 
 typedef struct {
     char nombrePerfil[50] ;
-    char salt[10] ;
+    char salt[16] ;
 } perfil ;
 
 typedef struct {
@@ -63,12 +63,19 @@ void crear_perfil(Map *mapa_perfiles) {
     if(map_search(mapa_perfiles, nombre_perfil) != NULL){
         puts("el perfil ya existe, intente con otro nombre");
     }else{
-        usuario *nuevo_usuario = (usuario *) malloc(sizeof(usuario));
+        perfil *nuevo_usuario = (perfil *) malloc(sizeof(perfil));
 
-        strcpy(nuevo_usuario->nombre, nombre_perfil);
-        nuevo_usuario->mapa_claves = map_create(is_equal_str);
+        printf("Ingrese el salt para el nuevo perfil: ");
+        // aca se pondra la parte de la clave uncica
 
-        map_insert(mapa_perfiles, nuevo_usuario->nombre, nuevo_usuario);
+        char salt[16];
+        claveAleatoria(salt, 15);
+        strcpy(nuevo_usuario->salt, salt);
+
+        scanf(" %15s", nuevo_usuario->salt);
+        strcpy(nuevo_usuario->nombrePerfil, nombre_perfil);
+
+        map_insert(mapa_perfiles, nuevo_usuario->nombrePerfil, nuevo_usuario);
         puts("se a creado el nuevo perfil");
     }
 }
