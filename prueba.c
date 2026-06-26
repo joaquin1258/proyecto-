@@ -2,20 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
-#define N_RESPALDO N
-#define N VARIABLE_IGNORADA 
-
-#include "tdas/extra.h"
-
-// Limpiamos el truco para que no afecte al resto de prueba.c
-#undef N
-#define N N_RESPALDO
-#undef N_RESPALDO
-// =======================================================
-
 #include "tdas/list.h"
 #include "tdas/map.h"
+#include "tdas/extra.h"
 #include <time.h>
 #include <windows.h>
 #include "bcrypt.h"
