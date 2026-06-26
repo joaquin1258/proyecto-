@@ -58,7 +58,7 @@ Ya en el menu principales, la aplicacion implementa las siguiente funciones:
 ### A mejorar: 
 1) Interfaz de usuario más amigable.
 2) Permitir el almacenamiento de contraseñas en la nube.
-3) 
+3) Permitir el funcionamiento en diferentes sistemas operativos
 
 
 ## Ejemplo de uso 
