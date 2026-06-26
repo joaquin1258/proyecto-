@@ -19,7 +19,7 @@ Este programa fue desarrollado en lenguaje C y puede ejecutarse utilizando VScod
 Primero, para compilar el programa (en VScode), se debe ir a la terminal y colocar la siguiente linea: 
 
 ````
-gcc prueba.c tdas/list.c tdas/extra.c tdas/map.c -o programa -lbcrypt
+gcc prueba.c tdas/list.c tdas/extra.c tdas/map.c -o programa 
 ````
 
 Despues en la misma terminal, para ejecutar el programa ingresas la siguiente linea: 
