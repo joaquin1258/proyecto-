@@ -157,6 +157,90 @@ Saliendo del programa y guardando...
 ```
 Aunque no se vea, los datos de la cuenta creada, ya estan guardadas en un archivo.
 
+### Paso 5 Volver a la aplicacion 
+
+El usuario vuelve a probar la aplicacion, pero esta vez, ingresara con su perfil ya creado
+```
+========================================
+     Bienvenido a MAXIMA SEGURIDAD
+========================================
+Bienvenido de nuevo, se han cargado los datos previamente guardados.
+desea ingresar o crear un nuevo perfil? (ingresar/crear)
+ingresar
+ingrese el nombre del perfil: 
+Joaquin
+```
+
+Esto lo llevara directamente al menu principal de la aplicacion.
+
+### Paso 6 Claves mas usadas
+
+El usuario ingresa la opcion de claves mas usadas, y el sistema le mostrara las claves mas usadas y vulnerables. 
+```
+Ingrese su opcion: 6
+claves mas usadas:
+123456
+123456789
+password
+qwerty
+12345678
+12345
+123123
+111111
+(...)
+Presione una tecla para continuar...
+```
+
+### Paso 7 verificar clave 
+
+Ya en el menu principal, el usuario ingresa la opcion de verificar clave.
+```
+========================================
+            MENU DE OPCIONES
+========================================
+1) crear cuenta
+2) buscar clave
+3) cambiar clave
+4) verificar clave
+5) clave repetida
+6) claves mas usadas
+7) salir
+Ingrese su opcion: 4
+Ingrese la clave a verificar: Joaquin
+La clave es demasiado corta y no es segura.
+Presione una tecla para continuar...
+
+Ingrese su opcion: 4
+Ingrese la clave a verificar: JoaquinCortez2026
+La clave no cumple con los requisitos de seguridad.
+Presione una tecla para continuar...
+
+Ingrese su opcion: 4
+Ingrese la clave a verificar: !JoaquinCortez2026¡
+La clave es segura.
+Presione una tecla para continuar...
+```
+
+Se puede ver que se intentan con varias contraseñas, pero el sistema le dice que no es muy larga o no cumple con los requisitos de seguridad, solo cuando cumple con los requisitos (que sea larga, con mayuscula, con minuscula y que no sea una contraseña comun).
+
+### Paso 8 Cerrar y terminar de usar
+
+El usuario ingres la opcion de salir de la aplicacion despues de haber probado multiples de las opciones.
+```
+========================================
+            MENU DE OPCIONES
+========================================
+1) crear cuenta
+2) buscar clave
+3) cambiar clave
+4) verificar clave
+5) clave repetida
+6) claves mas usadas
+7) salir
+Ingrese su opcion: 7
+Saliendo del programa y guardando...
+```
+
 
 ## contribuciones
 
