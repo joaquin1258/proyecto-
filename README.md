@@ -47,6 +47,7 @@ Ya en el menu principales, la aplicacion implementa las siguiente funciones:
 6) `contrRepetida`: si el usuario quiere saber cuantas veces a usado una clave en diferentes servicios, la funcion le indica cuantas veces a usado esa clave en los diferentes sevicios en el mapa de usuario
 7) `claves_mas_usadas`: si el usuario quiere ver cuales son las claves mas comunes y vunerables, esta funcion le mostrara todas las contraseñas que son mas comunes, a partir de la lista de claves mas usadas
 8) `guardado`: al salir de la aplicacion, para evitar perder la informacion, se guardan los datos en el archivo "datos.dat"
+9) `cambiar_clav`: si el usuario quiere cambiar alguna clave ya usada, esta funcion se encarga de cambiar la informacion a partir del mapa de usuarios y verifica que esta funcion sea segura
 
 
 ### contribuciones
