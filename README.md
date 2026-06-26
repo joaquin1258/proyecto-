@@ -33,7 +33,7 @@ Despues en la misma terminal, para ejecutar el programa ingresas la siguiente li
 ### Funcionando correctamente:
 
 El programa implementa varias funcionalidades antes de entrar al menu principal, la cuales son: 
-1) `CargarcargarClavesMasUsadas`: A partir del archivo "comunes.txt" crea una lista con las 1000 claves mas usadas.
+1) `cargarClavesMasUsadas`: A partir del archivo "comunes.txt" crea una lista con las 1000 claves mas usadas.
 2) `recuperarDatos`: Carga los datos anteriormente ocupados en la aplicacion, guardados en el archivo "datos.dat".
 3) `crear_perfil`: Crea un perfil para un usuario que ingresa por primera vez a la aplicacion, el cual se guarda en el mapa de perfiles.
 4) `ingresar_perfil`: El usuario ingresa su perfil anteriormente usado en la aplicacion, el cual estaba guardado en el mapa de perfiles y verifica si en efecto el usuario creo un perfil anteriormente.
@@ -62,7 +62,101 @@ Ya en el menu principales, la aplicacion implementa las siguiente funciones:
 
 
 ## Ejemplo de uso 
-...
+
+### Paso 1 Crear Perfil 
+
+Se le pide al usuario que ingrese una de las dos opciones, si ingresar un perfil ya creado o crear un perfil nuevo.
+```
+========================================
+     Bienvenido a MAXIMA SEGURIDAD
+========================================
+Bienvenido de nuevo, se han cargado los datos previamente guardados.
+desea ingresar o crear un nuevo perfil? (ingresar/crear)
+crear
+ingrese el nombre del nuevo perfil: 
+Joaquin
+se ha creado el nuevo perfil de forma segura
+Por favor, confirma el ingreso al perfil que acabas de crear:
+ingrese el nombre del perfil: 
+Joaquin
+```
+
+En este caso, se crea un nuevo perfil y se le pide al usuario que confirme el nombre con el cual va a trabajar con la aplicacion (aparece la frase de "Bienvenido de nuevo", porque ya habiamos trabajado antes en la aplicacion para probarla).
+
+### Paso 2 Crear cuenta
+
+El usuario, con su perfil ya creado, entra al menu principal y elige crear una nueva cuenta.
+```
+========================================
+             MENU DE OPCIONES
+========================================
+1) crear cuenta
+2) buscar clave
+3) cambiar clave
+4) verificar clave
+5) clave repetida
+6) claves mas usadas
+7) salir
+Ingrese su opcion: 1
+Ingrese nombre de cuenta: JoaquinDisney
+Ingrese nombre del servicio: Disney
+¿Desea generar una clave para el servicio? s/n: s
+Clave generada: )Ng7PnK-)TJ&*u9W
+Cuenta ingresada y cifrada correctamente
+Presione una tecla para continuar...
+```
+
+El usuario crea una nueva cuenta y pide crear una nueva contraseña aleatoria y segura. 
+
+### Paso 3 Cambiar clave
+
+El usuario se arrepiente de usar una contraseña aleatoria y decide cambiarla por una que el mismo desarrollo.
+
+```
+========================================
+            MENU DE OPCIONES
+========================================
+1) crear cuenta
+2) buscar clave
+3) cambiar clave
+4) verificar clave
+5) clave repetida
+6) claves mas usadas
+7) salir
+Ingrese su opcion: 3
+Ingrese el nombre de usuario asociado a la cuenta: JoaquinDisney
+Ingrese el nombre del servicio / cuenta: Disney
+desea generar una nueva clave aleatoria o ingresar una nueva clave? 
+1. Generar clave aleatoria
+2. Ingresar nueva clave
+2
+Ingrese la nueva clave: JOAQUINcortez2006$
+La clave es segura.
+Clave cambiada con éxito.
+Presione una tecla para continuar...
+```
+
+Como se puede ver el usuario ingresa los datos de el servicio asociado para poder cambiar la contraseña antes generada.
+
+### Paso 4 salir y guardar
+
+Ya el usuario ocupo la aplicacion y ahora quiere guardar los datos, lo que hace es salir de la aplicacion.
+```
+========================================
+            MENU DE OPCIONES
+========================================
+1) crear cuenta
+2) buscar clave
+3) cambiar clave
+4) verificar clave
+5) clave repetida
+6) claves mas usadas
+7) salir
+Ingrese su opcion: 7
+Saliendo del programa y guardando...
+```
+Aunque no se vea, los datos de la cuenta creada, ya estan guardadas en un archivo.
+
 
 ## contribuciones
 
