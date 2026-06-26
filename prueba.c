@@ -6,6 +6,8 @@
 #include "tdas/list.h"
 #include "tdas/map.h"
 #include <time.h>
+#include <windows.h>
+#include "bcrypt.h"
 
 
 typedef struct {
@@ -360,6 +362,7 @@ void crearCuenta(Map *cuentas, List *lista) {
     }
 }
 
+<<<<<<< HEAD
 void claves_mas_usadas(List *lista) {
 
     printf("claves mas usadas:\n");
@@ -369,6 +372,21 @@ void claves_mas_usadas(List *lista) {
         clave = (char *)list_next(lista);
     }
 }
+=======
+void funcionPBKDF2(char *claveUnica, char *salt, unsigned char *claveDerivada) {
+
+    BCRYPT_ALG_HANDLE handle=NULL ; 
+    BCryptOpenAlgorithmProvider(&handle, L"PBKDF2", NULL, 0) ;
+
+
+    BCryptDeriveKeyPBKDF2(handle, (PUCHAR) claveUnica, strlen(claveUnica), (PUCHAR) salt, strlen(salt), 10000, claveDerivada, 32, 0) ;
+
+    BCryptCloseAlgorithmProvider(handle, 0) ;
+
+}
+
+
+>>>>>>> 09b13bce4d7b36c2b40d948f43aa0f202424bef3
 
 int main(){
     printf("Bienvenido al gestor de claves\n");
