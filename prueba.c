@@ -9,6 +9,8 @@
 #include <windows.h>
 #include "bcrypt.h"
 
+#undef N
+
 typedef struct {
     char nombrePerfil[50] ;
     char salt[16] ;
@@ -22,7 +24,7 @@ typedef struct {
 
 typedef struct {
     char nombreCuenta[50] ;
-    char password[64]; 
+    char password[68] ; 
 } cuenta ;
 
 int is_equal_str(void *key1, void *key2) {
@@ -70,7 +72,9 @@ void funcionPBKDF2(char *claveUnica, char *salt, unsigned char *claveDerivada) {
 void funcionAES256Cifrar(unsigned char *claveDerivada, char *password, unsigned char *contraCifrada) {
     BCRYPT_ALG_HANDLE handle=NULL ;
     BCryptOpenAlgorithmProvider(&handle, L"AES", NULL, 0) ;
-    BCryptSetProperty(handle, BCRYPT_CHAINING_MODE, BCRYPT_CHAIN_MODE_CBC, sizeof(BCRYPT_CHAIN_MODE_CBC), 0) ;
+    
+    // CORRECCIÓN: Se añade (PUCHAR) para compatibilidad de tipos con la macro de Windows
+    BCryptSetProperty(handle, BCRYPT_CHAINING_MODE, (PUCHAR) BCRYPT_CHAIN_MODE_CBC, sizeof(BCRYPT_CHAIN_MODE_CBC), 0) ;
 
     BCRYPT_KEY_HANDLE handleLLave=NULL ;
     BCryptGenerateSymmetricKey(handle, &handleLLave, NULL, 0, (PUCHAR) claveDerivada, 32, 0) ;
@@ -86,7 +90,9 @@ void funcionAES256Cifrar(unsigned char *claveDerivada, char *password, unsigned 
 void funcionAES256Descifrar(unsigned char *claveDerivada, unsigned char *contraCifrada, char *passwordOriginal) {
     BCRYPT_ALG_HANDLE handle=NULL ;
     BCryptOpenAlgorithmProvider(&handle, L"AES", NULL, 0) ;
-    BCryptSetProperty(handle, BCRYPT_CHAINING_MODE, BCRYPT_CHAIN_MODE_CBC, sizeof(BCRYPT_CHAIN_MODE_CBC), 0) ;
+    
+    // CORRECCIÓN: Se añade (PUCHAR) para compatibilidad de tipos con la macro de Windows
+    BCryptSetProperty(handle, BCRYPT_CHAINING_MODE, (PUCHAR) BCRYPT_CHAIN_MODE_CBC, sizeof(BCRYPT_CHAIN_MODE_CBC), 0) ;
 
     BCRYPT_KEY_HANDLE handleLLave=NULL ;
     BCryptGenerateSymmetricKey(handle, &handleLLave, NULL, 0, (PUCHAR) claveDerivada, 32, 0) ;
@@ -133,7 +139,6 @@ void crear_perfil(Map *mapa_perfiles) {
     }else{
         usuario *nuevo_usuario = (usuario *) malloc(sizeof(usuario));
 
-        // Generación automatizada y segura del salt para el perfil
         char salt_aux[16];
         claveAleatoria(salt_aux, 15);
         strcpy(nuevo_usuario->salt, salt_aux);
@@ -191,9 +196,9 @@ void buscarContra(Map *nombresUsuarios, usuario *perfil_activo) {
             cuenta *c = (cuenta *)par->value;
             printf("Cuenta/Servicio: %s\n", c->nombreCuenta) ;
             
-            // --- PROCESO DE DESCIFRADO ---
+            // --- PROCESO DE DESCIFRADO SIMÉTRICO ---
             unsigned char claveDerivada[32];
-            char passwordOriginal[50] = {0};
+            char passwordOriginal[68] = {0};
 
             funcionPBKDF2(perfil_activo->nombre, perfil_activo->salt, claveDerivada);
             funcionAES256Descifrar(claveDerivada, (unsigned char*)c->password, passwordOriginal);
@@ -213,9 +218,9 @@ void buscarContra(Map *nombresUsuarios, usuario *perfil_activo) {
             cuenta *c = (cuenta *)par->value;
             printf("Cuenta/Servicio: %s\n", c->nombreCuenta) ;
             
-            // --- PROCESO DE DESCIFRADO ---
+            // --- PROCESO DE DESCIFRADO SIMÉTRICO ---
             unsigned char claveDerivada[32];
-            char passwordOriginal[50] = {0};
+            char passwordOriginal[68] = {0};
 
             funcionPBKDF2(perfil_activo->nombre, perfil_activo->salt, claveDerivada);
             funcionAES256Descifrar(claveDerivada, (unsigned char*)c->password, passwordOriginal);
@@ -334,9 +339,9 @@ void crearCuenta(Map *cuentas, usuario *perfil_activo, List *lista) {
         unsigned char claveDerivada[32];
         unsigned char contraCifrada[64] = {0};
 
-        funcionPBKDF2(clave, perfil_activo->salt, claveDerivada);
+        funcionPBKDF2(perfil_activo->nombre, perfil_activo->salt, claveDerivada);
         funcionAES256Cifrar(claveDerivada, clave, contraCifrada);
-        memcpy(nueva->password, contraCifrada, 50);
+        memcpy(nueva->password, contraCifrada, 64); 
 
         printf("Cuenta ingresada y cifrada correctamente\n") ;
         map_insert(cuentas, nueva->nombreCuenta, nueva) ;
@@ -359,7 +364,14 @@ int guardado(const char *nombreArchivo, Map* mapa_perfiles) {
         return 0;
     }
 
-    int total_perfiles = map_count(mapa_perfiles);
+    // CORRECCIÓN: Conteo manual de perfiles (ya que map_count no existe)
+    int total_perfiles = 0;
+    MapPair *aux_contar = map_first(mapa_perfiles);
+    while (aux_contar != NULL) {
+        total_perfiles++;
+        aux_contar = map_next(mapa_perfiles);
+    }
+
     fwrite(&total_perfiles, sizeof(int), 1, archivo);
     MapPair *pair_perfil = map_first(mapa_perfiles);
 
@@ -367,15 +379,23 @@ int guardado(const char *nombreArchivo, Map* mapa_perfiles) {
         usuario *user = (usuario *) pair_perfil->value;
         if (user != NULL){
             fwrite(user->nombre, sizeof(char), 50, archivo);
-            fwrite(user->salt, sizeof(char), 16, archivo); // Guardar salt en binario
+            fwrite(user->salt, sizeof(char), 16, archivo); 
             
-            int total_cuentas = map_count(user->mapa_claves);
+            // CORRECCIÓN: Conteo manual de las cuentas asociadas al mapa del usuario
+            int total_cuentas = 0;
+            MapPair *aux_cuentas = map_first(user->mapa_claves);
+            while (aux_cuentas != NULL) {
+                total_cuentas++;
+                aux_cuentas = map_next(user->mapa_claves);
+            }
+            
             fwrite(&total_cuentas, sizeof(int), 1, archivo);
 
             MapPair *pair_cuenta = map_first(user->mapa_claves);
             while(pair_cuenta != NULL){
-                fwrite(pair_cuenta->key, sizeof(char), 50, archivo);
-                fwrite(pair_cuenta->value, sizeof(char), 50, archivo); 
+                cuenta *c = (cuenta *) pair_cuenta->value;
+                fwrite(c->nombreCuenta, sizeof(char), 50, archivo);
+                fwrite(c->password, sizeof(char), 68, archivo); 
                 pair_cuenta = map_next(user->mapa_claves);
             }
         }
@@ -403,7 +423,7 @@ int recuperarDatos(const char *nombre, Map *mapa_perfiles) {
         if (user == NULL) exit(EXIT_FAILURE);
 
         fread(user->nombre, sizeof(char), 50, archivo);
-        fread(user->salt, sizeof(char), 16, archivo); // Recuperar salt en binario
+        fread(user->salt, sizeof(char), 16, archivo); 
         
         user->mapa_claves = map_create(is_equal_str);
 
@@ -415,7 +435,7 @@ int recuperarDatos(const char *nombre, Map *mapa_perfiles) {
             if (nueva == NULL) exit(EXIT_FAILURE);
 
             fread(nueva->nombreCuenta, sizeof(char), 50, archivo);
-            fread(nueva->password, sizeof(char), 50, archivo);
+            fread(nueva->password, sizeof(char), 68, archivo); 
 
             map_insert(user->mapa_claves, nueva->nombreCuenta, nueva);
         }
@@ -456,13 +476,13 @@ void cambiar_clave(Map *cuentas, usuario *perfil_activo, List *lista) {
             return;
         }
 
-        // --- PROCESO DE CIFRADO PARA LA NUEVA CLAVE ---
+        // --- PROCESO DE CIFRADO SIMÉTRICO ---
         unsigned char claveDerivada[32];
         unsigned char contraCifrada[64] = {0};
 
-        funcionPBKDF2(nueva_clave, perfil_activo->salt, claveDerivada);
+        funcionPBKDF2(perfil_activo->nombre, perfil_activo->salt, claveDerivada);
         funcionAES256Cifrar(claveDerivada, nueva_clave, contraCifrada);
-        memcpy(cuenta_auxi->password, contraCifrada, 50);
+        memcpy(cuenta_auxi->password, contraCifrada, 64);
         printf("Clave cambiada y cifrada exitosamente.\n");
     }
     else{
