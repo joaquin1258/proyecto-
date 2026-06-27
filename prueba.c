@@ -80,18 +80,19 @@ int is_equal_str(void *key1, void *key2) {
 
 
 void claveAleatoria(char *clave, int largo){
+    // se crea un banco de caracteres
     const char caracteres[] = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890!@#$&*()_+-/=?";
     int cantidad_caracteres = sizeof(caracteres) - 1;
     int es_segura = 0;
 
-
+    // se itera para confirma que la clave creada sea segura
     do {
         int mayuscula = 0;
         int minuscula = 0;
         int numero = 0;
         int simbolo = 0;
 
-
+        // se eligen datos al azar para crear la clave
         for (int i = 0; i < largo; i++){
             int caracter = rand() % cantidad_caracteres;
             clave[i] = caracteres[caracter];
@@ -106,7 +107,7 @@ void claveAleatoria(char *clave, int largo){
             if (ispunct(clave[i])) simbolo++;
         }
 
-
+        // si cumple con los requerimientos es segura
         if (mayuscula >= 1 && minuscula >= 1 && numero >= 1 && simbolo >= 1) {
             es_segura = 1;
         }
@@ -177,9 +178,10 @@ void funcionAES256Descifrar(unsigned char *claveDerivada, unsigned char *contraC
 
 List *cargarClavesMasUsadas() {
     List *lista = list_create();
+    // se crea una lista de claves
     if(lista == NULL) exit(EXIT_FAILURE);
 
-
+    // se abre el archivo de claves mas usadas
     FILE *archivo = fopen("comunes.txt", "r");
     if (archivo == NULL) {
         printf("Error al abrir el archivo comunes.txt\n");
@@ -189,7 +191,7 @@ List *cargarClavesMasUsadas() {
 
     char palabra[50];
 
-
+    // se itera en cada palabra para alamacenarla en la lista 
     while(fscanf(archivo, "%49s", palabra) != EOF) {
         char *Nodo = (char *) malloc(sizeof(char) * 50);
         if(Nodo != NULL){
@@ -198,7 +200,7 @@ List *cargarClavesMasUsadas() {
         }
     }
 
-
+    // se cierra el archivo y se retorna la lista
     fclose(archivo);
     return lista;
 }
@@ -212,28 +214,32 @@ void crear_perfil(Map *mapa_perfiles, unsigned char *claveDerivada, unsigned cha
     char clave[50];
     puts("Ingrese el nombre del nuevo perfil: ");
     scanf(" %49s", nombre_perfil);
-   
+    
+    // recibe un nombre de perfil y verifica que no exista
     if(map_search(mapa_perfiles, nombre_perfil) != NULL){
         puts("El perfil ya existe, intente con otro nombre");
     } else {
+        // se crea el nuevo perfil y se le da su nombre
         perfil *nuevo_perfil = (perfil *) malloc(sizeof(perfil));
         strcpy(nuevo_perfil->nombrePerfil, nombre_perfil);
 
         printf("Ingrese la clave para el nuevo perfil: ");
         scanf(" %49s", clave);
-
+        // se crea la contraseña del perfil y se ingresa junto a su salt
         char *salt_aux = (char *) malloc(16 * sizeof(char));
         claveAleatoria(salt_aux, 15);
         map_insert(mapa_salts, nuevo_perfil->nombrePerfil, salt_aux);
 
+        // se crea su clave derivada
         funcionPBKDF2(clave, salt_aux, claveDerivada);
-       
+        
         char palabra_secreta[64] = "valido";
         funcionAES256Cifrar(claveDerivada, palabra_secreta, valido);
-        
+        // se  comprueba que funcione la clave derivada
         memset(nuevo_perfil->resultado, 0, sizeof(nuevo_perfil->resultado));
         memset(nuevo_perfil->resultado, valido, 64);
 
+        // se ingresa el perfil en el mapa de perfiles
         map_insert(mapa_perfiles, nuevo_perfil->nombrePerfil, nuevo_perfil);
         puts("Se ha creado el nuevo perfil de forma segura");
     }
@@ -244,35 +250,34 @@ usuario *ingresar_perfil(Map *mapa_perfiles, int *resultado, unsigned char *clav
     char nombre_perfil[50];
     puts("Ingrese el nombre del perfil: ");
     scanf(" %49s", nombre_perfil);
-
+    // se recibe un nombre de perfil y se comprueba de que exista
     MapPair *perfil_encontrado = map_search(mapa_perfiles, nombre_perfil);
     if(perfil_encontrado == NULL){
         puts("El perfil no existe, intente de nuevo");
         return NULL;
     } else {
+
+        // se recibe la clave del perfil 
         char clave[50];
         puts("Ingrese la clave del perfil: ");
         scanf(" %49s", clave);
-
+        // se referencia el perfil actual
         perfil *perfil_actual = (perfil *)perfil_encontrado->value;
        
-        MapPair *s_pair = map_search(mapa_salts, perfil_actual->nombrePerfil);
-        if(s_pair != NULL) {
-            funcionPBKDF2(clave, (char*)s_pair->value, claveDerivada);
-        }
-
+        // descifra el contenido del perfil para validar si la clave maestra es correcta
         char guardado[65] = {0};
         char auxiliar[50] = "valido";
 
         funcionAES256Descifrar(claveDerivada, perfil_actual->resultado, guardado);
         
+        // se compara para ver si es correcta la clave
         printf("%s", guardado);
         if (strncmp(guardado, auxiliar, 6)!=0){
             puts("clave incorrecta, intentelo de nuevo");
             *resultado=1;
             return NULL;
         }
-       
+        // si es correcta se ingresa 
         puts("Ingreso exitoso");
         *resultado = 0;
         return perfil_actual;
@@ -389,7 +394,7 @@ int verificarClave(char *clave, List *lista_clavesMasUsadas) {
     int numero = 0;
     int simbolo = 0;
 
-
+    // recorre la lista de claves mas usadas para ver si la contraseña esta entre esas
     if(lista_clavesMasUsadas != NULL) {
         char *clave_comun = (char *)list_first(lista_clavesMasUsadas);
 
@@ -403,13 +408,13 @@ int verificarClave(char *clave, List *lista_clavesMasUsadas) {
         }
     }
 
-
+    // si la clave es menor a 12 caracterez se informa de eso
     if(largo < 12) {
         printf("La clave es demasiado corta y no es segura.\n");
         return 0;
     }
 
-
+    // si la contraseña contiene al menos 1 mayuscula, 1 minuscula, 1 numero y 1 simbolo se avisa de eso
     for(int i = 0; i < largo; i++){
         if(isupper(clave[i])) mayuscula += 1;
         if(islower(clave[i])) minuscula += 1;
@@ -423,7 +428,7 @@ int verificarClave(char *clave, List *lista_clavesMasUsadas) {
         return 0;
     }
 
-
+    // si no retorno con lo anterior se confirma que la contraseña es segura
     printf("La clave es segura.\n");
     return 1;
 }
@@ -524,8 +529,10 @@ void crearUsuario(Map *usuarios, List *lista, unsigned char *claveDerivada) {
 
 
 void claves_mas_usadas(List *lista) {
+    // recibe la lista de claves mas usadas
     printf("claves mas usadas:\n");
     char *clave = (char *)list_first(lista);
+    // se usa un auxiliar para poder recorrerla y pasar al siguiente
     while (clave != NULL) {
         printf("%s\n", clave);
         clave = (char *)list_next(lista);
