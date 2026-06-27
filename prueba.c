@@ -3,13 +3,16 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "tdas/extra.h" 
+
+#include "tdas/extra.h"
 #undef N              
+
 
 #include "tdas/list.h"
 #include "tdas/map.h"
 #include <time.h>
 #include <windows.h>
+
 
 // --- TIPOS DE FUNCIONES PARA CARGAR DE FORMA DINÁMICA DE REEMPLAZO A BCRYPT.H ---
 typedef LONG (WINAPI *pfnBCryptOpenAlgorithmProvider)(HANDLE*, LPCWSTR, LPCWSTR, ULONG);
@@ -21,6 +24,7 @@ typedef LONG (WINAPI *pfnBCryptEncrypt)(HANDLE, PUCHAR, ULONG, void*, PUCHAR, UL
 typedef LONG (WINAPI *pfnBCryptDecrypt)(HANDLE, PUCHAR, ULONG, void*, PUCHAR, ULONG, PUCHAR, ULONG, ULONG*, ULONG);
 typedef LONG (WINAPI *pfnBCryptDestroyKey)(HANDLE);
 
+
 // Punteros de función globales
 pfnBCryptOpenAlgorithmProvider fn_BCryptOpenAlgorithmProvider = NULL;
 pfnBCryptDeriveKeyPBKDF2 fn_BCryptDeriveKeyPBKDF2 = NULL;
@@ -31,10 +35,11 @@ pfnBCryptEncrypt fn_BCryptEncrypt = NULL;
 pfnBCryptDecrypt fn_BCryptDecrypt = NULL;
 pfnBCryptDestroyKey fn_BCryptDestroyKey = NULL;
 
+
 int inicializarCriptografia() {
     HMODULE hBCrypt = LoadLibraryA("bcrypt.dll");
     if (!hBCrypt) return 0;
-    
+   
     fn_BCryptOpenAlgorithmProvider = (pfnBCryptOpenAlgorithmProvider)GetProcAddress(hBCrypt, "BCryptOpenAlgorithmProvider");
     fn_BCryptDeriveKeyPBKDF2 = (pfnBCryptDeriveKeyPBKDF2)GetProcAddress(hBCrypt, "BCryptDeriveKeyPBKDF2");
     fn_BCryptCloseAlgorithmProvider = (pfnBCryptCloseAlgorithmProvider)GetProcAddress(hBCrypt, "BCryptCloseAlgorithmProvider");
@@ -44,9 +49,11 @@ int inicializarCriptografia() {
     fn_BCryptDecrypt = (pfnBCryptDecrypt)GetProcAddress(hBCrypt, "BCryptDecrypt");
     fn_BCryptDestroyKey = (pfnBCryptDestroyKey)GetProcAddress(hBCrypt, "BCryptDestroyKey");
 
+
     return (fn_BCryptOpenAlgorithmProvider && fn_BCryptDeriveKeyPBKDF2 && fn_BCryptCloseAlgorithmProvider &&
             fn_BCryptSetProperty && fn_BCryptGenerateSymmetricKey && fn_BCryptEncrypt && fn_BCryptDecrypt && fn_BCryptDestroyKey);
 }
+
 
 typedef struct {
     char nombrePerfil[50] ;
@@ -54,36 +61,43 @@ typedef struct {
     char resultado[50] ;
 } perfil ;
 
+
 typedef struct {
     char nombre[50];
     Map *mapa_claves;
 } usuario;
 
+
 typedef struct {
     char nombreCuenta[50] ;
-    char password[68] ; 
+    char password[68] ;
 } cuenta ;
+
 
 int is_equal_str(void *key1, void *key2) {
   return strcmp((char *)key1, (char *)key2) == 0;
 }
 
+
 void claveAleatoria(char *clave, int largo){
     const char caracteres[] = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890!@#$&*()_+-/=?";
     int cantidad_caracteres = sizeof(caracteres) - 1;
-    int es_segura = 0; 
+    int es_segura = 0;
+
 
     do {
         int mayuscula = 0;
         int minuscula = 0;
-        int numero = 0; 
+        int numero = 0;
         int simbolo = 0;
+
 
         for (int i = 0; i < largo; i++){
             int caracter = rand() % cantidad_caracteres;
             clave[i] = caracteres[caracter];
         }
-        clave[largo] = '\0'; 
+        clave[largo] = '\0';
+
 
         for (int i = 0; i < largo; i++){
             if (isupper(clave[i])) mayuscula++;
@@ -92,51 +106,62 @@ void claveAleatoria(char *clave, int largo){
             if (ispunct(clave[i])) simbolo++;
         }
 
+
         if (mayuscula >= 1 && minuscula >= 1 && numero >= 1 && simbolo >= 1) {
-            es_segura = 1; 
+            es_segura = 1;
         }
+
 
     } while (es_segura==0);
 }
 
+
 void funcionPBKDF2(char *claveUnica, char *salt, unsigned char *claveDerivada) {
-    HANDLE handle=NULL ; 
+    HANDLE handle=NULL ;
     fn_BCryptOpenAlgorithmProvider(&handle, L"PBKDF2", NULL, 0) ;
     fn_BCryptDeriveKeyPBKDF2(handle, (PUCHAR) claveUnica, strlen(claveUnica), (PUCHAR) salt, strlen(salt), 10000, claveDerivada, 32, 0) ;
     fn_BCryptCloseAlgorithmProvider(handle, 0) ;
 }
 
+
 void funcionAES256Cifrar(unsigned char *claveDerivada, char *password, unsigned char *contraCifrada) {
     HANDLE handle=NULL ;
     fn_BCryptOpenAlgorithmProvider(&handle, L"AES", NULL, 0) ;
-    
+   
     fn_BCryptSetProperty(handle, L"ChainingMode", (PUCHAR) L"ChainingModeCBC", sizeof(L"ChainingModeCBC"), 0) ;
+
 
     HANDLE handleLLave=NULL ;
     fn_BCryptGenerateSymmetricKey(handle, &handleLLave, NULL, 0, (PUCHAR) claveDerivada, 32, 0) ;
 
-    unsigned char iv[16] = {0}; 
+
+    unsigned char iv[16] = {0};
     ULONG cantBytes=0 ;
-    
-    fn_BCryptEncrypt(handleLLave, (PUCHAR) password, strlen(password), NULL, iv, 16, contraCifrada, 64, &cantBytes, 0) ;
+   
+    fn_BCryptEncrypt(handleLLave, (PUCHAR) password, 64, NULL, iv, 16, contraCifrada, 64, &cantBytes, 0) ;
+
 
     fn_BCryptDestroyKey(handleLLave) ;
     fn_BCryptCloseAlgorithmProvider(handle, 0) ;
 }
 
+
 void funcionAES256Descifrar(unsigned char *claveDerivada, unsigned char *contraCifrada, char *passwordOriginal) {
     HANDLE handle=NULL ;
     fn_BCryptOpenAlgorithmProvider(&handle, L"AES", NULL, 0) ;
-    
+   
     fn_BCryptSetProperty(handle, L"ChainingMode", (PUCHAR) L"ChainingModeCBC", sizeof(L"ChainingModeCBC"), 0) ;
+
 
     HANDLE handleLLave=NULL ;
     fn_BCryptGenerateSymmetricKey(handle, &handleLLave, NULL, 0, (PUCHAR) claveDerivada, 32, 0) ;
 
-    unsigned char iv[16] = {0}; 
+
+    unsigned char iv[16] = {0};
     ULONG cantBytes=0 ;
-    
+   
     fn_BCryptDecrypt(handleLLave, (PUCHAR) contraCifrada, 64, NULL, iv, 16, (PUCHAR) passwordOriginal, 64, &cantBytes, 0) ;
+
 
     if (cantBytes < 64) {
         passwordOriginal[cantBytes] = '\0';
@@ -144,108 +169,132 @@ void funcionAES256Descifrar(unsigned char *claveDerivada, unsigned char *contraC
         passwordOriginal[63] = '\0';
     }
 
+
     fn_BCryptDestroyKey(handleLLave) ;
     fn_BCryptCloseAlgorithmProvider(handle, 0) ;
 }
 
-List *cargarClavesMasUsadas() {
-    List *lista = list_create(); 
-    if(lista == NULL) exit(EXIT_FAILURE); 
 
-    FILE *archivo = fopen("comunes.txt", "r"); 
+List *cargarClavesMasUsadas() {
+    List *lista = list_create();
+    if(lista == NULL) exit(EXIT_FAILURE);
+
+
+    FILE *archivo = fopen("comunes.txt", "r");
     if (archivo == NULL) {
         printf("Error al abrir el archivo comunes.txt\n");
         return NULL;
     }
 
-    char palabra[50]; 
 
-    while(fscanf(archivo, "%49s", palabra) != EOF) { 
+    char palabra[50];
+
+
+    while(fscanf(archivo, "%49s", palabra) != EOF) {
         char *Nodo = (char *) malloc(sizeof(char) * 50);
         if(Nodo != NULL){
-            strcpy(Nodo, palabra); 
+            strcpy(Nodo, palabra);
             list_pushBack(lista, Nodo);
-        } 
+        }
     }
 
-    fclose(archivo); 
+
+    fclose(archivo);
     return lista;
 }
 
+
 Map *mapa_salts = NULL;
+
 
 void crear_perfil(Map *mapa_perfiles, unsigned char *claveDerivada, unsigned char *valido) {
     char nombre_perfil[50];
     char clave[50];
-    puts("ingrese el nombre del nuevo perfil: ");
+    puts("Ingrese el nombre del nuevo perfil: ");
     scanf(" %49s", nombre_perfil);
+   
     if(map_search(mapa_perfiles, nombre_perfil) != NULL){
-        puts("el perfil ya existe, intente con otro nombre");
-    }else{
-        
+        puts("El perfil ya existe, intente con otro nombre");
+    } else {
         perfil *nuevo_perfil = (perfil *) malloc(sizeof(perfil));
-        printf("ingrese la clave para el nuevo perfil: ");
+        strcpy(nuevo_perfil->nombrePerfil, nombre_perfil);
+
+        printf("Ingrese la clave para el nuevo perfil: ");
         scanf(" %49s", clave);
 
-        char salt_aux[16];
+        char *salt_aux = (char *) malloc(16 * sizeof(char));
         claveAleatoria(salt_aux, 15);
-        strcpy(nuevo_perfil->nombrePerfil, nombre_perfil);
-        strcpy(nuevo_perfil->salt, salt_aux);
+        map_insert(mapa_salts, nuevo_perfil->nombrePerfil, salt_aux);
+
         funcionPBKDF2(clave, salt_aux, claveDerivada);
-        funcionAES256Cifrar(claveDerivada, clave, valido);
+       
+        char palabra_secreta[64] = "valido";
+        funcionAES256Cifrar(claveDerivada, palabra_secreta, valido);
+        
+        memset(nuevo_perfil->resultado, 0, sizeof(nuevo_perfil->resultado));
+        memset(nuevo_perfil->resultado, valido, 64);
 
         map_insert(mapa_perfiles, nuevo_perfil->nombrePerfil, nuevo_perfil);
-        puts("se ha creado el nuevo perfil de forma segura");
+        puts("Se ha creado el nuevo perfil de forma segura");
     }
 }
 
-usuario* ingresar_perfil(Map *mapa_perfiles, int *resultado, unsigned char *claveDerivada, unsigned char *valido) {
+
+usuario *ingresar_perfil(Map *mapa_perfiles, int *resultado, unsigned char *claveDerivada) {
     char nombre_perfil[50];
-    char clave[50];
-    char auxiliar[50]="valido";
-    puts("ingrese el nombre del perfil: ");
+    puts("Ingrese el nombre del perfil: ");
     scanf(" %49s", nombre_perfil);
 
     MapPair *perfil_encontrado = map_search(mapa_perfiles, nombre_perfil);
     if(perfil_encontrado == NULL){
-        puts("el perfil no existe, intente de nuevo");
+        puts("El perfil no existe, intente de nuevo");
         return NULL;
-    }
-    else{
+    } else {
         char clave[50];
-        puts("ingrese la clave del perfil: ");
+        puts("Ingrese la clave del perfil: ");
         scanf(" %49s", clave);
 
         perfil *perfil_actual = (perfil *)perfil_encontrado->value;
-        char guardado[50]={0};
+       
+        MapPair *s_pair = map_search(mapa_salts, perfil_actual->nombrePerfil);
+        if(s_pair != NULL) {
+            funcionPBKDF2(clave, (char*)s_pair->value, claveDerivada);
+        }
 
-        funcionAES256Decifrar(claveDerivada, valido, guardado);
-        if (strcmp(guardado, auxiliar) != 0) {
-            puts("clave incorrecta, intente de nuevo");
-            *resultado = 1; 
+        char guardado[65] = {0};
+        char auxiliar[50] = "valido";
+
+        funcionAES256Descifrar(claveDerivada, perfil_actual->resultado, guardado);
+        
+        printf("%s", guardado);
+        if (strncmp(guardado, auxiliar, 6)!=0){
+            puts("clave incorrecta, intentelo de nuevo");
+            *resultado=1;
             return NULL;
         }
-        puts("ingreso exitoso");
-        *resultado = 0; 
-        return (usuario *)perfil_encontrado->value;
+       
+        puts("Ingreso exitoso");
+        *resultado = 0;
+        return perfil_actual;
     }
 }
+
 
 int contrRepetida(char *clave, Map *usuarios, unsigned char *claveDerivada) {
     int cont = 0;
     MapPair *aux = map_first(usuarios);
-    
+   
     while(aux != NULL) {
-        
+       
         Map *mapaServicios = (Map *)aux->value;
         MapPair *aux_cuenta = map_first(mapaServicios);
-        
+       
         while(aux_cuenta != NULL) {
             cuenta *c = (cuenta *)aux_cuenta->value;
-            char des_password[68] = {0}; 
-            
+            char des_password[68] = {0};
+           
             funcionAES256Descifrar(claveDerivada, (unsigned char*)c->password, des_password);
-            
+           
             if (strcmp(clave, des_password) == 0) {
                 cont++;
             }
@@ -256,12 +305,14 @@ int contrRepetida(char *clave, Map *usuarios, unsigned char *claveDerivada) {
     return cont;
 }
 
+
 void buscarContra(Map *nombresUsuarios, unsigned char *claveDerivada) {
     char opcion ;
     printf("¿Desea buscar por nombre de usuario o cuenta?\n") ;
     printf("1. Usuario\n") ;
     printf("2. Cuenta\n") ;
     scanf(" %c", &opcion) ;
+
 
     if (opcion=='1') {
         char user[50] ;
@@ -331,17 +382,17 @@ void buscarContra(Map *nombresUsuarios, unsigned char *claveDerivada) {
 }
 
 
-
-
 int verificarClave(char *clave, List *lista_clavesMasUsadas) {
     int largo = strlen(clave);
-    int mayuscula = 0; 
+    int mayuscula = 0;
     int minuscula = 0;
     int numero = 0;
     int simbolo = 0;
 
+
     if(lista_clavesMasUsadas != NULL) {
         char *clave_comun = (char *)list_first(lista_clavesMasUsadas);
+
 
         while(clave_comun != NULL) {
             if(strcmp(clave, clave_comun) == 0) {
@@ -352,10 +403,12 @@ int verificarClave(char *clave, List *lista_clavesMasUsadas) {
         }
     }
 
+
     if(largo < 12) {
         printf("La clave es demasiado corta y no es segura.\n");
         return 0;
     }
+
 
     for(int i = 0; i < largo; i++){
         if(isupper(clave[i])) mayuscula += 1;
@@ -364,14 +417,17 @@ int verificarClave(char *clave, List *lista_clavesMasUsadas) {
         if(ispunct(clave[i])) simbolo += 1;
     }
 
+
     if(mayuscula < 1 || minuscula < 1 || numero < 1 || simbolo < 1) {
         printf("La clave no cumple con los requisitos de seguridad.\n");
         return 0;
     }
 
+
     printf("La clave es segura.\n");
     return 1;
 }
+
 
 void asociarServicio(MapPair *par, unsigned char *claveDerivada, List *lista) {
     char servicio[50] ;
@@ -380,8 +436,10 @@ void asociarServicio(MapPair *par, unsigned char *claveDerivada, List *lista) {
     printf("Ingrese nombre del servicio: ") ;
     scanf(" %49s", servicio) ;
 
+
     cuenta *nueva=(cuenta*) malloc(sizeof(cuenta)) ;
     strcpy(nueva->nombreCuenta, servicio) ;
+
 
     printf("¿Desea generar una clave para el servicio? s/n: ") ;
     scanf(" %c", &opcion) ;
@@ -400,6 +458,7 @@ void asociarServicio(MapPair *par, unsigned char *claveDerivada, List *lista) {
     memcpy(nueva->password, contraCifrada, 64) ;
     map_insert(par->value, nueva->nombreCuenta, nueva->password) ;
 }
+
 
 void crearUsuario(Map *usuarios, List *lista, unsigned char *claveDerivada) {
     printf("Ingrese nombre de usuario: ") ;
@@ -424,11 +483,14 @@ void crearUsuario(Map *usuarios, List *lista, unsigned char *claveDerivada) {
         strcpy(nuevo->nombre, nombreCuenta) ;
         nuevo->mapa_claves=map_create(is_equal_str) ;
 
+
         printf("Ingrese nombre del servicio: ") ;
         scanf("%49s", servicio) ;
 
+
         cuenta *nueva=(cuenta*) malloc(sizeof(cuenta)) ;
         strcpy(nueva->nombreCuenta, servicio) ;
+
 
         printf("¿Desea generar una clave para el servicio? s/n: ") ;
         scanf(" %c", &opcion2) ;
@@ -439,6 +501,7 @@ void crearUsuario(Map *usuarios, List *lista, unsigned char *claveDerivada) {
         }
         else {
 
+
             do {
                 printf("Ingrese una clave: ");
                 scanf("%49s", clave);
@@ -446,16 +509,19 @@ void crearUsuario(Map *usuarios, List *lista, unsigned char *claveDerivada) {
             strcpy(nueva->password, clave) ;
         }
 
+
         // --- PROCESO DE CIFRADO ---
         unsigned char contraCifrada[64] = {0};
         funcionAES256Cifrar(claveDerivada, clave, contraCifrada);
-        memcpy(nueva->password, contraCifrada, 64); 
+        memcpy(nueva->password, contraCifrada, 64);
+
 
         printf("Cuenta ingresada y cifrada correctamente\n") ;
-        map_insert(nuevo->mapa_claves, nueva->nombreCuenta, nueva->password) ; 
+        map_insert(nuevo->mapa_claves, nueva->nombreCuenta, nueva->password) ;
         map_insert(usuarios, nuevo->nombre, nuevo->mapa_claves) ;
     }
 }
+
 
 void claves_mas_usadas(List *lista) {
     printf("claves mas usadas:\n");
@@ -466,12 +532,14 @@ void claves_mas_usadas(List *lista) {
     }
 }
 
+
 int guardado(const char *nombreArchivo, Map* mapa_perfiles) {
     FILE *archivo = fopen(nombreArchivo, "wb");
     if (archivo == NULL) {
         printf("Error al abrir el archivo para guardar.\n");
         return 0;
     }
+
 
     int total_perfiles = 0;
     MapPair *aux_contar = map_first(mapa_perfiles);
@@ -480,18 +548,20 @@ int guardado(const char *nombreArchivo, Map* mapa_perfiles) {
         aux_contar = map_next(mapa_perfiles);
     }
 
+
     fwrite(&total_perfiles, sizeof(int), 1, archivo);
     MapPair *pair_perfil = map_first(mapa_perfiles);
+
 
     while(pair_perfil != NULL){
         usuario *user = (usuario *) pair_perfil->value;
         if (user != NULL){
             fwrite(user->nombre, sizeof(char), 50, archivo);
-            
+           
             MapPair *salt_pair = map_search(mapa_salts, user->nombre);
             char *salt_guardar = (salt_pair != NULL) ? (char*)salt_pair->value : "000000000000000";
-            fwrite(salt_guardar, sizeof(char), 16, archivo); 
-            
+            fwrite(salt_guardar, sizeof(char), 16, archivo);
+           
             int total_usuarios_internos = 0;
             MapPair *aux_u = map_first(user->mapa_claves);
             while (aux_u != NULL) {
@@ -500,16 +570,18 @@ int guardado(const char *nombreArchivo, Map* mapa_perfiles) {
             }
             fwrite(&total_usuarios_internos, sizeof(int), 1, archivo);
 
+
             // Re-iteramos de forma lineal y limpia
             MapPair *pair_u_interno = map_first(user->mapa_claves);
             while(pair_u_interno != NULL){
                 usuario *u_int = (usuario *)pair_u_interno->value;
                 fwrite(u_int->nombre, sizeof(char), 50, archivo);
-                
+               
                 int total_cuentas = 0;
                 MapPair *aux_c = map_first(u_int->mapa_claves);
                 while(aux_c != NULL) { total_cuentas++; aux_c = map_next(u_int->mapa_claves); }
             fwrite(&total_cuentas, sizeof(int), 1, archivo);
+
 
                 MapPair *pair_cuenta = map_first(u_int->mapa_claves);
                 while(pair_cuenta != NULL) {
@@ -519,7 +591,7 @@ int guardado(const char *nombreArchivo, Map* mapa_perfiles) {
                     pair_cuenta = map_next(u_int->mapa_claves);
                 }
                 // CORRECCIÓN AQUÍ: Avanzamos con la variable del ciclo correcto
-                pair_u_interno = map_next(user->mapa_claves); 
+                pair_u_interno = map_next(user->mapa_claves);
             }
         }
         pair_perfil = map_next(mapa_perfiles);
@@ -528,6 +600,7 @@ int guardado(const char *nombreArchivo, Map* mapa_perfiles) {
     return 1;
 }
 
+
 int recuperarDatos(const char *nombre, Map *mapa_perfiles) {
     FILE *archivo = fopen(nombre, "rb");
     if (archivo == NULL) {
@@ -535,49 +608,58 @@ int recuperarDatos(const char *nombre, Map *mapa_perfiles) {
         return 0;
     }
 
+
     int total_perfiles = 0;
     if (fread(&total_perfiles, sizeof(int), 1, archivo) != 1) {
         fclose(archivo);
         return 0;
     }
 
+
     for (int i = 0; i < total_perfiles; i++) {
         usuario *user = (usuario *) malloc(sizeof(usuario));
         if (user == NULL) exit(EXIT_FAILURE);
 
+
         fread(user->nombre, sizeof(char), 50, archivo);
-        
+       
         char *salt_recup = (char *) malloc(sizeof(char) * 16);
-        fread(salt_recup, sizeof(char), 16, archivo); 
+        fread(salt_recup, sizeof(char), 16, archivo);
         map_insert(mapa_salts, user->nombre, salt_recup);
-        
+       
         user->mapa_claves = map_create(is_equal_str);
+
 
         int total_usuarios_internos = 0;
         fread(&total_usuarios_internos, sizeof(int), 1, archivo);
+
 
         for (int j = 0; j < total_usuarios_internos; j++) {
             usuario *u_int = (usuario *) malloc(sizeof(usuario));
             fread(u_int->nombre, sizeof(char), 50, archivo);
             u_int->mapa_claves = map_create(is_equal_str);
 
+
         int total_cuentas = 0;
         fread(&total_cuentas, sizeof(int), 1, archivo);
+
 
             for(int k = 0; k < total_cuentas; k++) {
             cuenta *nueva = (cuenta *) malloc(sizeof(cuenta));
             fread(nueva->nombreCuenta, sizeof(char), 50, archivo);
-                fread(nueva->password, sizeof(char), 64, archivo); 
-                map_insert(u_int->mapa_claves, nueva->nombreCuenta, nueva);
+                fread(nueva->password, sizeof(char), 64, archivo);
+                map_insert(u_int->mapa_claves, nueva->nombreCuenta, nueva->password);
         }
             map_insert(user->mapa_claves, u_int->nombre, u_int);
         }
         map_insert(mapa_perfiles, user->nombre, user);
     }
 
+
     fclose(archivo);
     return 1;
 }
+
 
 void cambiar_clave(Map *cuentas, unsigned char *claveDerivada, List *lista) {
     char nombre_u[50], servicio[50];
@@ -593,7 +675,7 @@ void cambiar_clave(Map *cuentas, unsigned char *claveDerivada, List *lista) {
             cuenta *cuenta_auxi = (cuenta *)pair_c->value;
         int opcion;
         char nueva_clave[50];
-        
+       
         printf("desea generar una nueva clave aleatoria o ingresar una nueva clave? \n");
         printf("1. Generar clave aleatoria\n");
         printf("2. Ingresar nueva clave\n");
@@ -612,8 +694,10 @@ void cambiar_clave(Map *cuentas, unsigned char *claveDerivada, List *lista) {
             return;
         }
 
+
         unsigned char contraCifrada[64] = {0};
         funcionAES256Cifrar(claveDerivada, nueva_clave, contraCifrada);
+
 
             memset(cuenta_auxi->password, 0, sizeof(cuenta_auxi->password));
         memcpy(cuenta_auxi->password, contraCifrada, 64);
@@ -627,34 +711,41 @@ void cambiar_clave(Map *cuentas, unsigned char *claveDerivada, List *lista) {
     }
 }
 
+
 int main(){
     limpiarPantalla();
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
+
 
     if (!inicializarCriptografia()) {
         printf("Error al cargar los modulos de seguridad de Windows.\n");
         return 1;
     }
 
-    unsigned char claveDerivada[32] = {0}; 
-    char valido[50] = "valido";
+
+    unsigned char claveDerivada[64] = {0};
+    unsigned char valido[64] = {0};
+
 
 
     printf("========================================\n");
     printf("     Bienvenido a MAXIMA SEGURIDAD\n");
     printf("========================================\n");
 
-    Map *mapaUsuarios = NULL; 
-    List *lista_clavesMasUsadas = cargarClavesMasUsadas(); 
+
+    Map *mapaUsuarios = NULL;
+    List *lista_clavesMasUsadas = cargarClavesMasUsadas();
     Map *mapa_perfiles = map_create(is_equal_str);
-    mapa_salts = map_create(is_equal_str); 
+    mapa_salts = map_create(is_equal_str);
     usuario *perfil_activo = NULL;
     int resultado = 1;
     char opcion;
     srand(time(NULL));
 
+
     int estado = recuperarDatos("datos.dat", mapa_perfiles);
+
 
     if (estado == 1){
         printf("Bienvenido de nuevo, se han cargado los datos previamente guardados.\n");
@@ -663,49 +754,46 @@ int main(){
         printf("Parece que es tu primera vez usando MAXIMA SEGURIDAD, crea un perfil para comenzar.\n");
     }
 
+
     do{
         char respuesta[9];
-        puts("desea ingresar o crear un nuevo perfil? (ingresar/crear)"); 
+        puts("desea ingresar o crear un nuevo perfil? (ingresar/crear)");
         scanf("%8s", respuesta);
-        
+       
         if (strcmp(respuesta, "crear")==0){
             crear_perfil(mapa_perfiles, claveDerivada, valido);
-            
+           
             puts("Por favor, confirma el ingreso al perfil que acabas de crear:");
-            perfil_activo = ingresar_perfil(mapa_perfiles, &resultado, claveDerivada, valido);
+            perfil_activo = ingresar_perfil(mapa_perfiles, &resultado, claveDerivada);
             if (perfil_activo != NULL) {
-                mapaUsuarios = perfil_activo->mapa_claves; 
+                mapaUsuarios = perfil_activo->mapa_claves;
+               
                 
-                MapPair *s_pair = map_search(mapa_salts, perfil_activo->nombre);
-                if(s_pair != NULL) {
-                    funcionPBKDF2(perfil_activo->nombre, (char*)s_pair->value, claveDerivada);
-                }
             }
         }
         else if (strcmp(respuesta, "ingresar")==0){
-            perfil_activo = ingresar_perfil(mapa_perfiles, &resultado, claveDerivada, valido);
+            perfil_activo = ingresar_perfil(mapa_perfiles, &resultado, claveDerivada);
             if (perfil_activo != NULL) {
-                mapaUsuarios = perfil_activo->mapa_claves; 
-                
-                MapPair *s_pair = map_search(mapa_salts, perfil_activo->nombre);
-                if(s_pair != NULL) {
-                    funcionPBKDF2(perfil_activo->nombre, (char*)s_pair->value, claveDerivada);
-                }
+                mapaUsuarios = perfil_activo->mapa_claves;
+               
             }
         }
         else{
             puts("respuesta no valida, intente de nuevo");
         }
 
+
     }while(resultado != 0);
 
+
     limpiarPantalla();
+
 
     do {
         puts("========================================");
         puts("            MENU DE OPCIONES");
         puts("========================================");
-        
+       
         puts("1) crear cuenta");
         puts("2) buscar clave");
         puts("3) cambiar clave");
@@ -713,9 +801,10 @@ int main(){
         puts("5) clave repetida");
         puts("6) claves mas usadas");
         puts("7) salir");
-        
+       
         printf("Ingrese su opcion: ");
         scanf(" %c", &opcion);
+
 
         switch (opcion) {
             case '1':
@@ -752,14 +841,15 @@ int main(){
             default:
                 printf("Opcion no válida\n");
                 break;
-        } 
-        
-        if (opcion != '7') { 
+        }
+       
+        if (opcion != '7') {
             presioneTeclaParaContinuar();
             limpiarPantalla();
         }
-        
-    } while (opcion != '7'); 
+       
+    } while (opcion != '7');
+
 
     return 0;
 }
