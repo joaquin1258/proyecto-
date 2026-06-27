@@ -51,6 +51,7 @@ int inicializarCriptografia() {
 typedef struct {
     char nombrePerfil[50] ;
     char salt[16] ;
+    char resultado[50] ;
 } perfil ;
 
 typedef struct {
@@ -173,36 +174,57 @@ List *cargarClavesMasUsadas() {
 
 Map *mapa_salts = NULL;
 
-void crear_perfil(Map *mapa_perfiles) {
+void crear_perfil(Map *mapa_perfiles, unsigned char *claveDerivada, unsigned char *valido) {
     char nombre_perfil[50];
+    char clave[50];
     puts("ingrese el nombre del nuevo perfil: ");
     scanf(" %49s", nombre_perfil);
     if(map_search(mapa_perfiles, nombre_perfil) != NULL){
         puts("el perfil ya existe, intente con otro nombre");
     }else{
-        usuario *nuevo_usuario = (usuario *) malloc(sizeof(usuario));
-        strcpy(nuevo_usuario->nombre, nombre_perfil);
-        nuevo_usuario->mapa_claves = map_create(is_equal_str);
+        
+        perfil *nuevo_perfil = (perfil *) malloc(sizeof(perfil));
+        printf("ingrese la clave para el nuevo perfil: ");
+        scanf(" %49s", clave);
 
-        char *salt_aux = (char *) malloc(sizeof(char) * 16);
+        char salt_aux[16];
         claveAleatoria(salt_aux, 15);
-        map_insert(mapa_salts, nuevo_usuario->nombre, salt_aux);
+        strcpy(nuevo_perfil->nombrePerfil, nombre_perfil);
+        strcpy(nuevo_perfil->salt, salt_aux);
+        funcionPBKDF2(clave, salt_aux, claveDerivada);
+        funcionAES256Cifrar(claveDerivada, clave, valido);
 
-        map_insert(mapa_perfiles, nuevo_usuario->nombre, nuevo_usuario);
+        map_insert(mapa_perfiles, nuevo_perfil->nombrePerfil, nuevo_perfil);
         puts("se ha creado el nuevo perfil de forma segura");
     }
 }
 
-usuario* ingresar_perfil(Map *mapa_perfiles, int *resultado) {
+usuario* ingresar_perfil(Map *mapa_perfiles, int *resultado, unsigned char *claveDerivada, unsigned char *valido) {
     char nombre_perfil[50];
+    char clave[50];
+    char auxiliar[50]="valido";
     puts("ingrese el nombre del perfil: ");
     scanf(" %49s", nombre_perfil);
+
     MapPair *perfil_encontrado = map_search(mapa_perfiles, nombre_perfil);
     if(perfil_encontrado == NULL){
         puts("el perfil no existe, intente de nuevo");
         return NULL;
     }
     else{
+        char clave[50];
+        puts("ingrese la clave del perfil: ");
+        scanf(" %49s", clave);
+
+        perfil *perfil_actual = (perfil *)perfil_encontrado->value;
+        char guardado[50]={0};
+
+        funcionAES256Decifrar(claveDerivada, valido, guardado);
+        if (strcmp(guardado, auxiliar) != 0) {
+            puts("clave incorrecta, intente de nuevo");
+            *resultado = 1; 
+            return NULL;
+        }
         puts("ingreso exitoso");
         *resultado = 0; 
         return (usuario *)perfil_encontrado->value;
@@ -369,8 +391,8 @@ void asociarServicio(MapPair *par, unsigned char *claveDerivada, List *lista) {
     }
     else {
         do {
-            printf("Ingrese una clave: ");
-            scanf("%49s", clave);
+        printf("Ingrese una clave: ");
+        scanf("%49s", clave);
         } while (verificarClave(clave, lista)==0) ;
     }
     unsigned char contraCifrada[64] = {0};
@@ -487,12 +509,12 @@ int guardado(const char *nombreArchivo, Map* mapa_perfiles) {
                 int total_cuentas = 0;
                 MapPair *aux_c = map_first(u_int->mapa_claves);
                 while(aux_c != NULL) { total_cuentas++; aux_c = map_next(u_int->mapa_claves); }
-                fwrite(&total_cuentas, sizeof(int), 1, archivo);
+            fwrite(&total_cuentas, sizeof(int), 1, archivo);
 
                 MapPair *pair_cuenta = map_first(u_int->mapa_claves);
                 while(pair_cuenta != NULL) {
                     cuenta *c = (cuenta *)pair_cuenta->value;
-                    fwrite(c->nombreCuenta, sizeof(char), 50, archivo);
+                fwrite(c->nombreCuenta, sizeof(char), 50, archivo);
                     fwrite(c->password, sizeof(char), 64, archivo);
                     pair_cuenta = map_next(u_int->mapa_claves);
                 }
@@ -528,7 +550,7 @@ int recuperarDatos(const char *nombre, Map *mapa_perfiles) {
         char *salt_recup = (char *) malloc(sizeof(char) * 16);
         fread(salt_recup, sizeof(char), 16, archivo); 
         map_insert(mapa_salts, user->nombre, salt_recup);
-
+        
         user->mapa_claves = map_create(is_equal_str);
 
         int total_usuarios_internos = 0;
@@ -539,15 +561,15 @@ int recuperarDatos(const char *nombre, Map *mapa_perfiles) {
             fread(u_int->nombre, sizeof(char), 50, archivo);
             u_int->mapa_claves = map_create(is_equal_str);
 
-            int total_cuentas = 0;
-            fread(&total_cuentas, sizeof(int), 1, archivo);
+        int total_cuentas = 0;
+        fread(&total_cuentas, sizeof(int), 1, archivo);
 
             for(int k = 0; k < total_cuentas; k++) {
-                cuenta *nueva = (cuenta *) malloc(sizeof(cuenta));
-                fread(nueva->nombreCuenta, sizeof(char), 50, archivo);
+            cuenta *nueva = (cuenta *) malloc(sizeof(cuenta));
+            fread(nueva->nombreCuenta, sizeof(char), 50, archivo);
                 fread(nueva->password, sizeof(char), 64, archivo); 
                 map_insert(u_int->mapa_claves, nueva->nombreCuenta, nueva);
-            }
+        }
             map_insert(user->mapa_claves, u_int->nombre, u_int);
         }
         map_insert(mapa_perfiles, user->nombre, user);
@@ -569,32 +591,32 @@ void cambiar_clave(Map *cuentas, unsigned char *claveDerivada, List *lista) {
         MapPair *pair_c = map_search(u_int->mapa_claves, servicio);
         if(pair_c != NULL) {
             cuenta *cuenta_auxi = (cuenta *)pair_c->value;
-            int opcion;
-            char nueva_clave[50];
-            
-            printf("desea generar una nueva clave aleatoria o ingresar una nueva clave? \n");
-            printf("1. Generar clave aleatoria\n");
-            printf("2. Ingresar nueva clave\n");
-            scanf("%d", &opcion);
-            if (opcion == 1){
-                claveAleatoria(nueva_clave, 20);
-                printf("Nueva clave generada: %s\n", nueva_clave);
-            }
-            else if (opcion == 2){
-                printf("Ingrese la nueva clave: ");
-                scanf("%49s", nueva_clave);
-                verificarClave(nueva_clave, lista);
-            }
-            else{
-                printf("Opcion no valida, no se realizo ningun cambio.\n");
-                return;
-            }
+        int opcion;
+        char nueva_clave[50];
+        
+        printf("desea generar una nueva clave aleatoria o ingresar una nueva clave? \n");
+        printf("1. Generar clave aleatoria\n");
+        printf("2. Ingresar nueva clave\n");
+        scanf("%d", &opcion);
+        if (opcion == 1){
+            claveAleatoria(nueva_clave, 20);
+            printf("Nueva clave generada: %s\n", nueva_clave);
+        }
+        else if (opcion == 2){
+            printf("Ingrese la nueva clave: ");
+            scanf("%49s", nueva_clave);
+            verificarClave(nueva_clave, lista);
+        }
+        else{
+            printf("Opcion no valida, no se realizo ningun cambio.\n");
+            return;
+        }
 
-            unsigned char contraCifrada[64] = {0};
-            funcionAES256Cifrar(claveDerivada, nueva_clave, contraCifrada);
+        unsigned char contraCifrada[64] = {0};
+        funcionAES256Cifrar(claveDerivada, nueva_clave, contraCifrada);
 
             memset(cuenta_auxi->password, 0, sizeof(cuenta_auxi->password));
-            memcpy(cuenta_auxi->password, contraCifrada, 64);
+        memcpy(cuenta_auxi->password, contraCifrada, 64);
             printf("Clave cambiada con éxito.\n");
         } else {
             printf("Servicio no encontrado.\n");
@@ -616,6 +638,8 @@ int main(){
     }
 
     unsigned char claveDerivada[32] = {0}; 
+    char valido[50] = "valido";
+
 
     printf("========================================\n");
     printf("     Bienvenido a MAXIMA SEGURIDAD\n");
@@ -645,10 +669,10 @@ int main(){
         scanf("%8s", respuesta);
         
         if (strcmp(respuesta, "crear")==0){
-            crear_perfil(mapa_perfiles);
+            crear_perfil(mapa_perfiles, claveDerivada, valido);
             
             puts("Por favor, confirma el ingreso al perfil que acabas de crear:");
-            perfil_activo = ingresar_perfil(mapa_perfiles, &resultado);
+            perfil_activo = ingresar_perfil(mapa_perfiles, &resultado, claveDerivada, valido);
             if (perfil_activo != NULL) {
                 mapaUsuarios = perfil_activo->mapa_claves; 
                 
@@ -659,7 +683,7 @@ int main(){
             }
         }
         else if (strcmp(respuesta, "ingresar")==0){
-            perfil_activo = ingresar_perfil(mapa_perfiles, &resultado);
+            perfil_activo = ingresar_perfil(mapa_perfiles, &resultado, claveDerivada, valido);
             if (perfil_activo != NULL) {
                 mapaUsuarios = perfil_activo->mapa_claves; 
                 
