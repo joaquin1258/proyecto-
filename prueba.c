@@ -35,7 +35,7 @@ pfnBCryptEncrypt fn_BCryptEncrypt = NULL;
 pfnBCryptDecrypt fn_BCryptDecrypt = NULL;
 pfnBCryptDestroyKey fn_BCryptDestroyKey = NULL;
 
-
+// para inicializar lo que las funciones de bcrypt necesitan
 int inicializarCriptografia() {
     HMODULE hBCrypt = LoadLibraryA("bcrypt.dll");
     if (!hBCrypt) return 0;
@@ -54,20 +54,20 @@ int inicializarCriptografia() {
             fn_BCryptSetProperty && fn_BCryptGenerateSymmetricKey && fn_BCryptEncrypt && fn_BCryptDecrypt && fn_BCryptDestroyKey);
 }
 
-
+// estructura que corresponde al perfil
 typedef struct {
     char nombrePerfil[50] ;
     char salt[16] ;
     char resultado[50] ;
 } perfil ;
 
-
+// estructura que corresponde a un usuario
 typedef struct {
     char nombre[50];
     Map *mapa_claves;
 } usuario;
 
-
+// estructura que corresponde a una cuenta
 typedef struct {
     char nombreCuenta[50] ;
     char password[68] ;
@@ -115,15 +115,15 @@ void claveAleatoria(char *clave, int largo){
     } while (es_segura==0);
 }
 
-
+// funcion que crea la clave derivada
 void funcionPBKDF2(char *claveUnica, char *salt, unsigned char *claveDerivada) {
-    HANDLE handle=NULL ;
+    HANDLE handle=NULL ; // llave para acceder a donde trabajará
     fn_BCryptOpenAlgorithmProvider(&handle, L"PBKDF2", NULL, 0) ;
     fn_BCryptDeriveKeyPBKDF2(handle, (PUCHAR) claveUnica, strlen(claveUnica), (PUCHAR) salt, strlen(salt), 10000, claveDerivada, 32, 0) ;
     fn_BCryptCloseAlgorithmProvider(handle, 0) ;
 }
 
-
+// funcion que cifra la clave
 void funcionAES256Cifrar(unsigned char *claveDerivada, char *password, unsigned char *contraCifrada) {
     HANDLE handle=NULL ;
     fn_BCryptOpenAlgorithmProvider(&handle, L"AES", NULL, 0) ;
@@ -137,7 +137,7 @@ void funcionAES256Cifrar(unsigned char *claveDerivada, char *password, unsigned 
 
     unsigned char iv[16] = {0};
     ULONG cantBytes=0 ;
-   
+   // lo que cifra la clave
     fn_BCryptEncrypt(handleLLave, (PUCHAR) password, 64, NULL, iv, 16, contraCifrada, 64, &cantBytes, 0) ;
 
 
@@ -145,7 +145,7 @@ void funcionAES256Cifrar(unsigned char *claveDerivada, char *password, unsigned 
     fn_BCryptCloseAlgorithmProvider(handle, 0) ;
 }
 
-
+// funcion que descifra la clave
 void funcionAES256Descifrar(unsigned char *claveDerivada, unsigned char *contraCifrada, char *passwordOriginal) {
     HANDLE handle=NULL ;
     fn_BCryptOpenAlgorithmProvider(&handle, L"AES", NULL, 0) ;
@@ -160,6 +160,7 @@ void funcionAES256Descifrar(unsigned char *claveDerivada, unsigned char *contraC
     unsigned char iv[16] = {0};
     ULONG cantBytes=0 ;
    
+    // lo que descifra la clave
     fn_BCryptDecrypt(handleLLave, (PUCHAR) contraCifrada, 64, NULL, iv, 16, (PUCHAR) passwordOriginal, 64, &cantBytes, 0) ;
 
 
@@ -305,60 +306,60 @@ int contrRepetida(char *clave, Map *usuarios, unsigned char *claveDerivada) {
     return cont;
 }
 
-
+// funcion de busqueda de contraseñas
 void buscarContra(Map *nombresUsuarios, unsigned char *claveDerivada) {
     char opcion ;
-    printf("¿Desea buscar por nombre de usuario o cuenta?\n") ;
+    printf("¿Desea buscar por nombre de usuario o cuenta?\n") ; // se le pregunta al usuario si desea buscar en base a un nombre de usuario o una cuenta
     printf("1. Usuario\n") ;
     printf("2. Cuenta\n") ;
     scanf(" %c", &opcion) ;
 
 
-    if (opcion=='1') {
+    if (opcion=='1') { // busqueda en base a nombre de usuario
         char user[50] ;
         printf("Ingrese nombre de usuario: ") ;
         scanf("%49s", user) ;
-        MapPair *usuario=map_search(nombresUsuarios, user) ;
-        if (usuario==NULL) {
+        MapPair *usuario=map_search(nombresUsuarios, user) ; // se busca si el usuario fue creado previamente
+        if (usuario==NULL) { // si el usuario no existe
             printf("Nombre de usuario no registrado, intente nuevamente.\n") ;
         }
-        else {
+        else { // si ya existe
             printf("Cuentas asociadas al nombre de usuario: \n") ;
-            Map *mapaServicios=usuario->value ;
-            MapPair *cuenta=map_first(mapaServicios) ;
-            while (cuenta!=NULL) {
+            Map *mapaServicios=usuario->value ; // se accese al mapa de servicios asociado al nombre de usuario
+            MapPair *cuenta=map_first(mapaServicios) ; // se toma el primer par del mapa de servicios
+            while (cuenta!=NULL) { // se recorre el mapa
                 printf("%s\n", cuenta->key) ;
-                cuenta=map_next(mapaServicios) ;
+                cuenta=map_next(mapaServicios) ; // para avanzar en el mapa
             }
-            printf("¿A cuál cuenta desearía ver la clave?\n") ;
+            printf("¿A cuál cuenta desearía ver la clave?\n") ; 
             char servicio[50] ;
-            scanf("%49s", servicio) ;
-            MapPair *par=map_search(mapaServicios, servicio) ;
-            if (par!=NULL) {
+            scanf("%49s", servicio) ; // se pregunta que clave desea el usuario buscar
+            MapPair *par=map_search(mapaServicios, servicio) ; // se busca si existe en el mapa de servicios
+            if (par!=NULL) { // si existe
                 char clave[65] ;
                 memset(clave, 0, sizeof(clave)) ;
-                funcionAES256Descifrar(claveDerivada, par->value, clave) ;
+                funcionAES256Descifrar(claveDerivada, par->value, clave) ; // se descifra la clave de la cuenta
                 printf("Nombre de usuario: %s\n", user) ;
                 printf("Cuenta: %s\n", par->key) ;
-                printf("Clave: %s\n", clave) ;
+                printf("Clave: %s\n", clave) ; // se muestra la clave de la cuenta
             }
-            else printf("Servicio no encontrado.\n") ;
+            else printf("Servicio no encontrado.\n") ; // en caso de que la cuenta no exista
         }
     }
-    if (opcion=='2') {
+    if (opcion=='2') { // busqueda en base a nombre de cuenta
         char cuenta[50] ;
-        unsigned short aux=1 ;
+        unsigned short aux=1 ; // variable auxiliar para ver si se encontro la cuenta
         printf("Ingrese cuenta: ") ;
         scanf("%49s", cuenta) ;
-        MapPair *usuarios=map_first(nombresUsuarios) ;
-        while (usuarios!=NULL) {
-            Map *servicios=usuarios->value ;
-            MapPair *servicio=map_search(servicios, cuenta) ;
-            if (servicio!=NULL) {
+        MapPair *usuarios=map_first(nombresUsuarios) ; // se toma el primer par del mapa de usuarios
+        while (usuarios!=NULL) { // recorremos el mapa de usuarios
+            Map *servicios=usuarios->value ; // tomamos el mapa de servicios que es el valor del mapa de usuarios
+            MapPair *servicio=map_search(servicios, cuenta) ; // buscamos si esta la cuenta en el mapa de servicios
+            if (servicio!=NULL) { // si es que si esta
                 char clave[65] ;
                 memset(clave, 0, sizeof(clave)) ;
-                funcionAES256Descifrar(claveDerivada, servicio->value, clave) ;
-                for (int i=0; i<64; i++) {
+                funcionAES256Descifrar(claveDerivada, servicio->value, clave) ; // se descifra la clave
+                for (int i=0; i<64; i++) { // para limpiar la clave descifrada
                     if (clave[i]<32 || clave[i]>126) {
                         clave[i]='\0' ;
                         break ;
@@ -366,17 +367,17 @@ void buscarContra(Map *nombresUsuarios, unsigned char *claveDerivada) {
                 }
                 printf("Nombre de usuario: %s\n", usuarios->key) ;
                 printf("Cuenta: %s\n", servicio->key) ;
-                printf("Clave de la cuenta: %s", clave) ;
-                aux=0 ;
+                printf("Clave de la cuenta: %s", clave) ; // se muestra la clave
+                aux=0 ; // se actualiza el auxiliar para demostrar que si se encontro la cuenta
                 break ;
             }
-            usuarios=map_next(nombresUsuarios) ;
+            usuarios=map_next(nombresUsuarios) ; // avanzamos al siguiente usuario
         }
-        if (aux==1) {
+        if (aux==1) { // en caso de que la cuenta no exista
             printf("Cuenta no encontrada.\n") ;
         }
     }
-    else if (opcion!='1' && opcion!='2') {
+    else if (opcion!='1' && opcion!='2') { // opciones invalidas
         printf("ERROR, opcion invalida.\n") ;
     }
 }
@@ -428,97 +429,97 @@ int verificarClave(char *clave, List *lista_clavesMasUsadas) {
     return 1;
 }
 
-
+// funcion para asociar una cuenta a un nombre de usuario
 void asociarServicio(MapPair *par, unsigned char *claveDerivada, List *lista) {
     char servicio[50] ;
     char opcion ;
     char clave[50] ;
-    printf("Ingrese nombre del servicio: ") ;
+    printf("Ingrese nombre del servicio: ") ; // se ingresa el nombre de la cuenta
     scanf(" %49s", servicio) ;
 
 
-    cuenta *nueva=(cuenta*) malloc(sizeof(cuenta)) ;
+    cuenta *nueva=(cuenta*) malloc(sizeof(cuenta)) ; // se crea una variable tipo cuenta
     strcpy(nueva->nombreCuenta, servicio) ;
 
 
-    printf("¿Desea generar una clave para el servicio? s/n: ") ;
+    printf("¿Desea generar una clave para el servicio? s/n: ") ; // se le pregunta al usuario si desea generar una clave automaticamente
     scanf(" %c", &opcion) ;
-    if (opcion=='s') {
-        claveAleatoria(clave, 16) ;
+    if (opcion=='s') { // si elige que si
+        claveAleatoria(clave, 16) ; // se genera la clave
         printf("Clave generada: %s\n", clave) ;
     }
-    else {
+    else { // si el usuario ingresa 'n', se le da la opcion de crear su propia clave
         do {
         printf("Ingrese una clave: ");
         scanf("%49s", clave);
-        } while (verificarClave(clave, lista)==0) ;
+        } while (verificarClave(clave, lista)==0) ; // se verifica que la clave ingresada sea valida y segura
     }
-    unsigned char contraCifrada[64] = {0};
-    funcionAES256Cifrar(claveDerivada, clave, contraCifrada) ;
-    memcpy(nueva->password, contraCifrada, 64) ;
-    map_insert(par->value, nueva->nombreCuenta, nueva->password) ;
+    unsigned char contraCifrada[64] = {0}; // variable en donde se guardara la clave cifrada
+    funcionAES256Cifrar(claveDerivada, clave, contraCifrada) ; // ciframiento de la clave en base a la clave derivada
+    memcpy(nueva->password, contraCifrada, 64) ; // se copia la clave cifrada en la variable contraCifrada
+    map_insert(par->value, nueva->nombreCuenta, nueva->password) ; // se guardan los datos en el mapa de servicios
 }
 
-
+// funcion para ingresar un usuario y una cuenta asociada a este
 void crearUsuario(Map *usuarios, List *lista, unsigned char *claveDerivada) {
     printf("Ingrese nombre de usuario: ") ;
     char nombreCuenta[50] ;
     scanf("%49s", nombreCuenta) ;
-    MapPair *valor=map_search(usuarios, nombreCuenta) ;
-    if (valor!=NULL) {
+    MapPair *valor=map_search(usuarios, nombreCuenta) ; // Se busca si el nombre de usuario se encuentra en el mapa de usuarios
+    if (valor!=NULL) { // En caso de que no este
         char opcion ;
         printf("¡Nombre de usuario ya en uso!\n") ;
-        printf("¿Desea asociar una nueva cuenta al usuario ingresado? s/n: ") ;
+        printf("¿Desea asociar una nueva cuenta al usuario ingresado? s/n: ") ; // se ingresa nombre de una cuenta para asociar al usuario
         scanf(" %c", &opcion) ;
         if (opcion=='s') {
-            asociarServicio(valor, claveDerivada, lista) ;
+            asociarServicio(valor, claveDerivada, lista) ; // pasamos el usuario con su mapa, la clave derivada y la lista con la base de datos
         }
-        else printf("Intente ingresar una cuenta nuevamente\n") ;
+        else printf("Intente ingresar una cuenta nuevamente\n") ; // en caso de que se ingrese una opcion invalida
     }
-    else {
+    else { // en caso de que si este el usuario en el mapa
         char servicio[50] ;
         char opcion2 ;
         char clave[50] ;
-        usuario *nuevo=(usuario*) malloc(sizeof(usuario)) ;
-        strcpy(nuevo->nombre, nombreCuenta) ;
-        nuevo->mapa_claves=map_create(is_equal_str) ;
+        usuario *nuevo=(usuario*) malloc(sizeof(usuario)) ; // se crea una variable tipo usuario 
+        strcpy(nuevo->nombre, nombreCuenta) ; // se guarda el nombre del usuario en la variable tipo usuario
+        nuevo->mapa_claves=map_create(is_equal_str) ; // se crea el mapa de servicios asociados al usuario
 
 
-        printf("Ingrese nombre del servicio: ") ;
+        printf("Ingrese nombre del servicio: ") ; // se ingresa un nombre de un servicio
         scanf("%49s", servicio) ;
 
 
-        cuenta *nueva=(cuenta*) malloc(sizeof(cuenta)) ;
+        cuenta *nueva=(cuenta*) malloc(sizeof(cuenta)) ; // se crea una variable tipo cuenta que almacenará el nombre de la cuenta y su clave
         strcpy(nueva->nombreCuenta, servicio) ;
 
 
-        printf("¿Desea generar una clave para el servicio? s/n: ") ;
+        printf("¿Desea generar una clave para el servicio? s/n: ") ; // se le pregunta al usuario si desea generar una clave automaticamente
         scanf(" %c", &opcion2) ;
         if (opcion2=='s') {
-            claveAleatoria(clave, 16) ;
-            printf("Clave generada: %s\n", clave) ;
+            claveAleatoria(clave, 16) ; // se crea su clave
+            printf("Clave generada: %s\n", clave) ; 
             strcpy(nueva->password, clave) ;
         }
-        else {
+        else { // si el usuario ingresa 'n', se le da la opcion de crear su propia clave
 
 
             do {
                 printf("Ingrese una clave: ");
                 scanf("%49s", clave);
-            } while (verificarClave(clave, lista)==0) ;
-            strcpy(nueva->password, clave) ;
+            } while (verificarClave(clave, lista)==0) ; // se verifica que la clave ingresada sea valida y segura
+            strcpy(nueva->password, clave) ; // se copia la clave en la variable tipo cuenta
         }
 
 
         // --- PROCESO DE CIFRADO ---
-        unsigned char contraCifrada[64] = {0};
-        funcionAES256Cifrar(claveDerivada, clave, contraCifrada);
-        memcpy(nueva->password, contraCifrada, 64);
+        unsigned char contraCifrada[64] = {0}; // variable en donde se guardara la clave cifrada
+        funcionAES256Cifrar(claveDerivada, clave, contraCifrada); // ciframiento de la clave en base a la clave derivada
+        memcpy(nueva->password, contraCifrada, 64); // se copia la clave cifrada en la variable contraCifrada
 
 
         printf("Cuenta ingresada y cifrada correctamente\n") ;
-        map_insert(nuevo->mapa_claves, nueva->nombreCuenta, nueva->password) ;
-        map_insert(usuarios, nuevo->nombre, nuevo->mapa_claves) ;
+        map_insert(nuevo->mapa_claves, nueva->nombreCuenta, nueva->password) ; // se guardan los datos en el mapa de servicios
+        map_insert(usuarios, nuevo->nombre, nuevo->mapa_claves) ; // se guardan los datos en el mapa de usuarios
     }
 }
 
