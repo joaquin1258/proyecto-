@@ -245,26 +245,26 @@ void buscarContra(Map *nombresUsuarios, unsigned char *claveDerivada) {
         char user[50] ;
         printf("Ingrese nombre de usuario: ") ;
         scanf("%49s", user) ;
-        MapPair *usuario_pair=map_search(nombresUsuarios, user) ;
-        if (usuario_pair==NULL) {
+        MapPair *usuario=map_search(nombresUsuarios, user) ;
+        if (usuario==NULL) {
             printf("Nombre de usuario no registrado, intente nuevamente.\n") ;
         }
         else {
             printf("Cuentas asociadas al nombre de usuario: \n") ;
-            Map *mapaServicios=usuario_pair->value ;
-            MapPair *cuenta_pair=map_first(mapaServicios) ;
-            while (cuenta_pair!=NULL) {
-                printf("%s\n", cuenta_pair->key) ;
-                cuenta_pair=map_next(mapaServicios) ;
+            Map *mapaServicios=usuario->value ;
+            MapPair *cuenta=map_first(mapaServicios) ;
+            while (cuenta!=NULL) {
+                printf("%s\n", cuenta->key) ;
+                cuenta=map_next(mapaServicios) ;
             }
             printf("¿A cuál cuenta desearía ver la clave?\n") ;
             char servicio[50] ;
             scanf("%49s", servicio) ;
             MapPair *par=map_search(mapaServicios, servicio) ;
             if (par!=NULL) {
-                char clave[50] ;
-                cuenta *c = (cuenta*)par->value;
-                funcionAES256Descifrar(claveDerivada, (unsigned char*)c->password, clave) ;
+                char clave[65] ;
+                memset(clave, 0, sizeof(clave)) ;
+                funcionAES256Descifrar(claveDerivada, par->value, clave) ;
                 printf("Nombre de usuario: %s\n", user) ;
                 printf("Cuenta: %s\n", par->key) ;
                 printf("Clave: %s\n", clave) ;
@@ -273,21 +273,27 @@ void buscarContra(Map *nombresUsuarios, unsigned char *claveDerivada) {
         }
     }
     if (opcion=='2') {
-        char cuenta_buscada[50] ;
+        char cuenta[50] ;
         unsigned short aux=1 ;
         printf("Ingrese cuenta: ") ;
-        scanf("%49s", cuenta_buscada) ;
+        scanf("%49s", cuenta) ;
         MapPair *usuarios=map_first(nombresUsuarios) ;
         while (usuarios!=NULL) {
             Map *servicios=usuarios->value ;
-            MapPair *servicio=map_search(servicios, cuenta_buscada) ;
+            MapPair *servicio=map_search(servicios, cuenta) ;
             if (servicio!=NULL) {
-                char clave[50] ;
-                cuenta *c = (cuenta*)servicio->value;
-                funcionAES256Descifrar(claveDerivada, (unsigned char*)c->password, clave) ;
+                char clave[65] ;
+                memset(clave, 0, sizeof(clave)) ;
+                funcionAES256Descifrar(claveDerivada, servicio->value, clave) ;
+                for (int i=0; i<64; i++) {
+                    if (clave[i]<32 || clave[i]>126) {
+                        clave[i]='\0' ;
+                        break ;
+                    }
+                }
                 printf("Nombre de usuario: %s\n", usuarios->key) ;
                 printf("Cuenta: %s\n", servicio->key) ;
-                printf("Clave de la cuenta: %s\n", clave) ;
+                printf("Clave de la cuenta: %s", clave) ;
                 aux=0 ;
                 break ;
             }
@@ -301,6 +307,9 @@ void buscarContra(Map *nombresUsuarios, unsigned char *claveDerivada) {
         printf("ERROR, opcion invalida.\n") ;
     }
 }
+
+
+
 
 int verificarClave(char *clave, List *lista_clavesMasUsadas) {
     int largo = strlen(clave);
@@ -370,14 +379,14 @@ void asociarServicio(MapPair *par, unsigned char *claveDerivada, List *lista) {
     map_insert(par->value, nueva->nombreCuenta, nueva->password) ;
 }
 
-void crearCuenta(Map *usuarios, List *lista, unsigned char *claveDerivada) {
-    printf("Ingrese nombre de cuenta: ") ;
+void crearUsuario(Map *usuarios, List *lista, unsigned char *claveDerivada) {
+    printf("Ingrese nombre de usuario: ") ;
     char nombreCuenta[50] ;
     scanf("%49s", nombreCuenta) ;
     MapPair *valor=map_search(usuarios, nombreCuenta) ;
     if (valor!=NULL) {
         char opcion ;
-        printf("¡Nombre de cuenta ya en uso!\n") ;
+        printf("¡Nombre de usuario ya en uso!\n") ;
         printf("¿Desea asociar una nueva cuenta al usuario ingresado? s/n: ") ;
         scanf(" %c", &opcion) ;
         if (opcion=='s') {
@@ -389,7 +398,6 @@ void crearCuenta(Map *usuarios, List *lista, unsigned char *claveDerivada) {
         char servicio[50] ;
         char opcion2 ;
         char clave[50] ;
-        
         usuario *nuevo=(usuario*) malloc(sizeof(usuario)) ;
         strcpy(nuevo->nombre, nombreCuenta) ;
         nuevo->mapa_claves=map_create(is_equal_str) ;
@@ -405,23 +413,25 @@ void crearCuenta(Map *usuarios, List *lista, unsigned char *claveDerivada) {
         if (opcion2=='s') {
             claveAleatoria(clave, 16) ;
             printf("Clave generada: %s\n", clave) ;
+            strcpy(nueva->password, clave) ;
         }
         else {
+
             do {
                 printf("Ingrese una clave: ");
                 scanf("%49s", clave);
             } while (verificarClave(clave, lista)==0) ;
+            strcpy(nueva->password, clave) ;
         }
 
         // --- PROCESO DE CIFRADO ---
         unsigned char contraCifrada[64] = {0};
         funcionAES256Cifrar(claveDerivada, clave, contraCifrada);
-        memset(nueva->password, 0, sizeof(nueva->password)); 
         memcpy(nueva->password, contraCifrada, 64); 
 
         printf("Cuenta ingresada y cifrada correctamente\n") ;
-        map_insert(nuevo->mapa_claves, nueva->nombreCuenta, nueva) ; 
-        map_insert(usuarios, nuevo->nombre, nuevo) ;
+        map_insert(nuevo->mapa_claves, nueva->nombreCuenta, nueva->password) ; 
+        map_insert(usuarios, nuevo->nombre, nuevo->mapa_claves) ;
     }
 }
 
@@ -685,7 +695,7 @@ int main(){
 
         switch (opcion) {
             case '1':
-                crearCuenta(mapaUsuarios, lista_clavesMasUsadas, claveDerivada);
+                crearUsuario(mapaUsuarios, lista_clavesMasUsadas, claveDerivada);
                 break;
             case '2':
                 buscarContra(mapaUsuarios, claveDerivada) ;
